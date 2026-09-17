@@ -1,0 +1,464 @@
+[
+  {
+    "id": "gst-001",
+    "name": "ชลเทพ เกียรติกุล",
+    "organization": "อิสระ/คอนเทนต์ส่วนตัว",
+    "phone": "081-923-4567",
+    "email": "chonlathep.k@gmail.com",
+    "guestType": "creator",
+    "status": "declined",
+    "seat": null,
+    "platforms": {
+      "tiktok": "287k",
+      "instagram": "376k",
+      "facebook": "357k"
+    },
+    "handles": {
+      "tiktok": "@chonlathep_k",
+      "instagram": "@chon_k_official",
+      "facebook": "Chonlathep Review"
+    },
+    "notes": "ติดภารกิจต่างจังหวัด ไม่สามารถเข้าร่วมได้",
+    "screeningId": "scr-premiere"
+  },
+  {
+    "id": "gst-002",
+    "name": "ธีรภัทร เกียรติกุล",
+    "organization": "ชื่นชอบหนัง",
+    "phone": "089-456-7890",
+    "email": "teerapat.movie@gmail.com",
+    "guestType": "vip",
+    "status": "accepted",
+    "seat": "A1",
+    "platforms": {
+      "tiktok": "323k",
+      "instagram": "365k"
+    },
+    "handles": {
+      "tiktok": "@teerapat_film",
+      "instagram": "@teerapat.cinema"
+    },
+    "notes": "ยืนยันเข้าร่วม 1 ที่นั่ง",
+    "screeningId": "scr-premiere"
+  },
+  {
+    "id": "gst-003",
+    "name": "ธนพล เกียรติกุล",
+    "organization": "ป๊อปคอร์นวันหยุด",
+    "phone": "082-345-6781",
+    "email": "thanapol.pop@gmail.com",
+    "guestType": "creator",
+    "status": "declined",
+    "seat": null,
+    "platforms": {
+      "instagram": "17k",
+      "tiktok": "319k"
+    },
+    "handles": {
+      "tiktok": "@thanapol_movies",
+      "instagram": "@thanapol_snap"
+    },
+    "notes": "ติดงานด่วน",
+    "screeningId": "scr-premiere"
+  },
+  {
+    "id": "gst-004",
+    "name": "ปวริศ บุญมาก",
+    "organization": "หนังเป็นเพื่อน",
+    "phone": "084-567-8912",
+    "email": "pawaris.friend@gmail.com",
+    "guestType": "vip",
+    "status": "accepted",
+    "seat": "A2",
+    "platforms": {
+      "tiktok": "453k",
+      "youtube": "258k"
+    },
+    "handles": {
+      "tiktok": "@pawaris_film",
+      "youtube": "PawarisMovieChannel"
+    },
+    "notes": "ต้องการที่นั่งกลางโรง",
+    "screeningId": "scr-premiere"
+  },
+  {
+    "id": "gst-005",
+    "name": "ศิรดา ไพศาล",
+    "organization": "เดอะฟิล์มไทมส์",
+    "phone": "086-789-1234",
+    "email": "sirada.filmtimes@press.co.th",
+    "guestType": "vip",
+    "status": "accepted",
+    "seat": "A3",
+    "platforms": {
+      "youtube": "238k",
+      "tiktok": "223k"
+    },
+    "handles": {
+      "youtube": "TheFilmTimesTH",
+      "tiktok": "@sirada_times"
+    },
+    "notes": "นักข่าวสายบันเทิงหลัก",
+    "screeningId": "scr-premiere"
+  },
+  {
+    "id": "gst-006",
+    "name": "ไววิช แสงอรุณ",
+    "organization": "นายจริงมีเดีย",
+    "phone": "085-678-9012",
+    "email": "waiwit.real@gmail.com",
+    "guestType": "vip",
+    "status": "accepted",
+    "seat": "A4",
+    "platforms": {
+      "instagram": "367k"
+    },
+    "handles": {
+      "instagram": "@waiwit_official"
+    },
+    "notes": "คอนเฟิร์มแล้ว",
+    "screeningId": "scr-premiere"
+  },
+  {
+    "id": "gst-007",
+    "name": "สลิสรา สายชล",
+    "organization": "ชื่นชอบหนัง",
+    "phone": "083-456-7891",
+    "email": "salisara.sch@gmail.com",
+    "guestType": "vip",
+    "status": "accepted",
+    "seat": "A5",
+    "platforms": {
+      "tiktok": "67k"
+    },
+    "handles": {
+      "tiktok": "@salisara_cinema"
+    },
+    "notes": "มาพร้อมผู้ติดตาม 0 ท่าน",
+    "screeningId": "scr-premiere"
+  },
+  {
+    "id": "gst-008",
+    "name": "นภัสกร ธาราทิพย์",
+    "organization": "นายจริงมีเดีย",
+    "phone": "087-890-1234",
+    "email": "napatsakorn@realmedia.com",
+    "guestType": "press",
+    "status": "pending",
+    "seat": null,
+    "platforms": {
+      "instagram": "122k",
+      "tiktok": "266k"
+    },
+    "handles": {
+      "instagram": "@napats_media",
+      "tiktok": "@napats_short"
+    },
+    "notes": "รอคอนเฟิร์มคิววันที่ 18",
+    "screeningId": "scr-premiere"
+  },
+  {
+    "id": "gst-009",
+    "name": "ปวริศ บุญมาก",
+    "organization": "นายจริงมีเดีย",
+    "phone": "081-345-6789",
+    "email": "pawaris.corp@realmedia.com",
+    "guestType": "vip",
+    "status": "accepted",
+    "seat": "A6",
+    "platforms": {
+      "tiktok": "166k",
+      "youtube": "251k",
+      "facebook": "348k"
+    },
+    "handles": {
+      "tiktok": "@pawaris_real",
+      "youtube": "PawarisRealLive",
+      "facebook": "RealMediaThailand"
+    },
+    "notes": "มี Live สดช่วงเดินพรมแดง",
+    "screeningId": "scr-premiere"
+  },
+  {
+    "id": "gst-010",
+    "name": "ชลเทพ สายชล",
+    "organization": "เสพติดหนังไทย",
+    "phone": "088-901-2345",
+    "email": "chon.thai@gmail.com",
+    "guestType": "vip",
+    "status": "accepted",
+    "seat": "A7",
+    "platforms": {
+      "instagram": "62k",
+      "tiktok": "339k"
+    },
+    "handles": {
+      "instagram": "@chon_thaimovie",
+      "tiktok": "@chon_addict"
+    },
+    "notes": "รีวิวรอบดึก",
+    "screeningId": "scr-premiere"
+  },
+  {
+    "id": "gst-011",
+    "name": "ชลเทพ ไพศาล",
+    "organization": "ชื่นชอบหนัง",
+    "phone": "082-234-5678",
+    "email": "chon.ph@cinema.com",
+    "guestType": "vip",
+    "status": "accepted",
+    "seat": "A8, A9",
+    "platforms": {
+      "instagram": "217k"
+    },
+    "handles": {
+      "instagram": "@chonlathep_p"
+    },
+    "notes": "จอง 2 ที่นั่งคู่ (A8, A9)",
+    "screeningId": "scr-premiere"
+  },
+  {
+    "id": "gst-012",
+    "name": "นภัสกร ธาราทิพย์",
+    "organization": "ตั๋วหนังมีเรื่อง",
+    "phone": "086-123-4567",
+    "email": "napats.ticket@gmail.com",
+    "guestType": "vip",
+    "status": "accepted",
+    "seat": "A10",
+    "platforms": {
+      "tiktok": "130k",
+      "youtube": "278k",
+      "facebook": "80k"
+    },
+    "handles": {
+      "tiktok": "@napats_tickets",
+      "youtube": "MovieTicketStory",
+      "facebook": "TicketStoryTH"
+    },
+    "notes": "ยืนยันเข้าร่วมเรียบร้อย",
+    "screeningId": "scr-premiere"
+  },
+  {
+    "id": "gst-013",
+    "name": "กิตติพงษ์ เจริญทรัพย์",
+    "organization": "สยามฟิล์ม รีวิว",
+    "phone": "089-111-2233",
+    "email": "kittipong@siamfilm.com",
+    "guestType": "vip",
+    "status": "accepted",
+    "seat": "B1, B2",
+    "platforms": {
+      "youtube": "410k",
+      "facebook": "210k"
+    },
+    "handles": {
+      "youtube": "SiamFilmReview",
+      "facebook": "SiamFilmOfficial"
+    },
+    "notes": "VIP สื่อหลัก 2 ที่นั่ง",
+    "screeningId": "scr-premiere"
+  },
+  {
+    "id": "gst-014",
+    "name": "ณัฐชา วงศ์สว่าง",
+    "organization": "Popcorn Talk",
+    "phone": "081-444-5566",
+    "email": "natcha@popcorntalk.net",
+    "guestType": "vip",
+    "status": "accepted",
+    "seat": "B3",
+    "platforms": {
+      "youtube": "195k",
+      "tiktok": "410k"
+    },
+    "handles": {
+      "youtube": "PopcornTalkTH",
+      "tiktok": "@popcorntalk"
+    },
+    "notes": "เข้าร่วมรอบกาล่า",
+    "screeningId": "scr-premiere"
+  },
+  {
+    "id": "gst-015",
+    "name": "วรเมธ เอกปฐม",
+    "organization": "ข่าวบันเทิงออนไลน์",
+    "phone": "085-777-8899",
+    "email": "worameth@entnews.co.th",
+    "guestType": "vip",
+    "status": "accepted",
+    "seat": "B4",
+    "platforms": {
+      "youtube": "320k",
+      "facebook": "540k"
+    },
+    "handles": {
+      "youtube": "EntNewsOnline",
+      "facebook": "EntNewsTH"
+    },
+    "notes": "ขออนุญาตนำกล้องโปรเข้าบันทึกภาพ",
+    "screeningId": "scr-premiere"
+  },
+  {
+    "id": "gst-016",
+    "name": "อัครพล สุริยะวงศ์",
+    "organization": "ไทยรัฐ ออนไลน์",
+    "phone": "086-333-2211",
+    "email": "akarapol@thairath.co.th",
+    "guestType": "vip",
+    "status": "accepted",
+    "seat": "B5, B6",
+    "platforms": {
+      "facebook": "890k",
+      "youtube": "550k"
+    },
+    "handles": {
+      "facebook": "ThairathEnt",
+      "youtube": "ThairathOnline"
+    },
+    "notes": "สัมภาษณ์นักแสดงนำหลังฉาย",
+    "screeningId": "scr-premiere"
+  },
+  {
+    "id": "gst-017",
+    "name": "มลฤดี เจริญสุข",
+    "organization": "เดลินิวส์ บันเทิง",
+    "phone": "084-222-1144",
+    "email": "monrudee@dailynews.co.th",
+    "guestType": "vip",
+    "status": "accepted",
+    "seat": "B7",
+    "platforms": {
+      "facebook": "620k",
+      "youtube": "180k"
+    },
+    "handles": {
+      "facebook": "DailynewsEnt",
+      "youtube": "DailynewsOfficial"
+    },
+    "notes": "โต๊ะข่าวบันเทิง",
+    "screeningId": "scr-premiere"
+  },
+  {
+    "id": "gst-018",
+    "name": "พิชญะ รัตนดิลก",
+    "organization": "มติชน บันเทิงวาไรตี้",
+    "phone": "083-999-8877",
+    "email": "pichaya@matichon.co.th",
+    "guestType": "vip",
+    "status": "accepted",
+    "seat": "B8",
+    "platforms": {
+      "facebook": "450k",
+      "youtube": "220k"
+    },
+    "handles": {
+      "facebook": "MatichonOnline",
+      "youtube": "MatichonTV"
+    },
+    "notes": "นักข่าวประจำโต๊ะบันเทิง",
+    "screeningId": "scr-premiere"
+  },
+  {
+    "id": "gst-019",
+    "name": "อลิสา จิตประภัสสร",
+    "organization": "Khaosod English",
+    "phone": "089-666-5544",
+    "email": "alisa@khaosod.co.th",
+    "guestType": "vip",
+    "status": "accepted",
+    "seat": "B9, B10",
+    "platforms": {
+      "facebook": "380k",
+      "youtube": "140k"
+    },
+    "handles": {
+      "facebook": "KhaosodOnline",
+      "youtube": "KhaosodTV"
+    },
+    "notes": "ทำข่าวภาษาอังกฤษ",
+    "screeningId": "scr-premiere"
+  },
+  {
+    "id": "gst-020",
+    "name": "ธนกร นิมิตกุล",
+    "organization": "TikTok Cinema Club",
+    "phone": "082-888-9900",
+    "email": "thanakorn.tik@gmail.com",
+    "guestType": "press",
+    "status": "accepted",
+    "seat": "C1",
+    "platforms": {
+      "tiktok": "520k",
+      "youtube": "110k",
+      "instagram": "98k"
+    },
+    "handles": {
+      "tiktok": "@thanakorn_movie",
+      "youtube": "ThanakornReview",
+      "instagram": "@thanakorn_film"
+    },
+    "notes": "ทำคลิปสั้นหลังดูจบ",
+    "screeningId": "scr-premiere"
+  },
+  {
+    "id": "gst-021",
+    "name": "พรรณรายณ์ บูรพา",
+    "organization": "ฟิล์มไดอารี่",
+    "phone": "087-555-4433",
+    "email": "pannarai.diary@gmail.com",
+    "guestType": "creator",
+    "status": "declined",
+    "seat": null,
+    "platforms": {
+      "tiktok": "480k",
+      "youtube": "165k"
+    },
+    "handles": {
+      "tiktok": "@filmdiary_th",
+      "youtube": "FilmDiaryChannel"
+    },
+    "notes": "ติดภารกิจถ่ายทำรายการ",
+    "screeningId": "scr-premiere"
+  },
+  {
+    "id": "gst-022",
+    "name": "จิรศักดิ์ เมธากุล",
+    "organization": "สายหนังติดจอ",
+    "phone": "081-777-6655",
+    "email": "jirasak.cinema@gmail.com",
+    "guestType": "creator",
+    "status": "pending",
+    "seat": null,
+    "platforms": {
+      "tiktok": "390k",
+      "facebook": "95k",
+      "youtube": "85k"
+    },
+    "handles": {
+      "tiktok": "@jirasak_film",
+      "facebook": "JirasakCinema"
+    },
+    "notes": "รอเช็คตารางงานก่อนเที่ยง",
+    "screeningId": "scr-premiere"
+  },
+  {
+    "id": "gst-1082310b",
+    "screeningId": "scr-gala-avatar",
+    "name": "ฟก",
+    "organization": "ฟกฟหกฟหกหฟ",
+    "guestType": "vip",
+    "status": "pending",
+    "phone": "ก",
+    "email": "EVO@gmail.com",
+    "seat": "B9",
+    "notes": "ก",
+    "platforms": {
+      "tiktok": "ก"
+    },
+    "handles": {
+      "tiktok": "@ฟก"
+    },
+    "attended": false
+  }
+]

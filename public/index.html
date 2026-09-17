@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>รอบสื่อ - Guest & Seat Manager</title>
+  
+  <!-- Google Fonts: Prompt -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  
+  <!-- Main Stylesheet -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <!-- Toast Container -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <div class="app-layout">
+    <!-- Left Sidebar -->
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-icon">
+          <i class="fa-solid fa-ticket-simple"></i>
+        </div>
+        <div class="brand-text">
+          <div class="brand-title">รอบสื่อ</div>
+          <div class="brand-subtitle">Guest & Seat Manager</div>
+        </div>
+      </div>
+
+      <nav class="nav-menu">
+        <button class="nav-item active" data-view="overview" id="navOverview">
+          <i class="fa-solid fa-chart-simple"></i>
+          <span>ภาพรวม</span>
+        </button>
+        <button class="nav-item" data-view="seats" id="navSeats">
+          <i class="fa-solid fa-couch"></i>
+          <span>ผังที่นั่ง</span>
+        </button>
+        <button class="nav-item" data-view="guests" id="navGuests">
+          <i class="fa-solid fa-user-group"></i>
+          <span>รายชื่อแขก</span>
+        </button>
+      </nav>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      
+      <!-- Top Screening Selector & Management Bar -->
+      <div class="screening-top-bar">
+        <div class="screening-selector-group">
+          <div class="screening-badge">
+            <i class="fa-solid fa-clapperboard"></i>
+            <span>รอบภาพยนตร์:</span>
+          </div>
+          <select id="activeScreeningSelect" class="screening-select"></select>
+        </div>
+        <div class="screening-actions">
+          <button id="btnEditScreening" class="btn btn-secondary">
+            <i class="fa-solid fa-gear"></i> ตั้งค่ารอบนี้
+          </button>
+          <button id="btnAddScreening" class="btn btn-primary">
+            <i class="fa-solid fa-plus"></i> เพิ่มรอบหนังใหม่
+          </button>
+        </div>
+      </div>
+
+      <!-- ================= 1. VIEW: ภาพรวม (Overview) ================= -->
+      <section id="view-overview" class="view-section active">
+        <header class="page-header">
+          <h1 class="page-title">ภาพรวมงาน</h1>
+          <p class="page-subtitle" id="overviewSubtitle">รอบพิเศษสำหรับสื่อ · โรงภาพยนตร์ 1 · 60 ที่นั่ง</p>
+        </header>
+
+        <!-- 4 Summary KPI Cards -->
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-number" id="statTotalGuests">22</div>
+            <div class="stat-label">แขกทั้งหมด</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-number stat-highlight" id="statAccepted">17</div>
+            <div class="stat-label">ตอบรับแล้ว</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-number" id="statPending">2</div>
+            <div class="stat-label">รอตอบรับ</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-number" id="statBookedSeats">21/60</div>
+            <div class="stat-label">ที่นั่งถูกจอง</div>
+          </div>
+        </div>
+
+        <!-- Platform Distribution Card -->
+        <div class="content-card platform-card">
+          <div class="card-header">
+            <h2 class="card-title">แขกแบ่งตามแพลตฟอร์ม</h2>
+            <p class="card-subtitle">จำนวนแขกที่ทำคอนเทนต์ในแต่ละช่องทาง (นับซ้ำหากมีหลายช่องทาง)</p>
+          </div>
+
+          <div class="platform-bars" id="platformBarsContainer">
+            <!-- YouTube -->
+            <div class="platform-bar-row">
+              <div class="platform-info">
+                <span class="platform-icon yt"><i class="fa-brands fa-youtube"></i></span>
+                <span class="platform-name">YouTube</span>
+              </div>
+              <div class="progress-track">
+                <div class="progress-fill fill-yt" id="barYT" style="width: 70%;"></div>
+              </div>
+              <div class="platform-value" id="valYT">14</div>
+            </div>
+
+            <!-- TikTok -->
+            <div class="platform-bar-row">
+              <div class="platform-info">
+                <span class="platform-icon tt"><i class="fa-brands fa-tiktok"></i></span>
+                <span class="platform-name">TikTok</span>
+              </div>
+              <div class="progress-track">
+                <div class="progress-fill fill-tt" id="barTT" style="width: 70%;"></div>
+              </div>
+              <div class="platform-value" id="valTT">14</div>
+            </div>
+
+            <!-- Facebook -->
+            <div class="platform-bar-row">
+              <div class="platform-info">
+                <span class="platform-icon fb"><i class="fa-brands fa-facebook-f"></i></span>
+                <span class="platform-name">Facebook</span>
+              </div>
+              <div class="progress-track">
+                <div class="progress-fill fill-fb" id="barFB" style="width: 50%;"></div>
+              </div>
+              <div class="platform-value" id="valFB">10</div>
+            </div>
+
+            <!-- Instagram -->
+            <div class="platform-bar-row">
+              <div class="platform-info">
+                <span class="platform-icon ig"><i class="fa-brands fa-instagram"></i></span>
+                <span class="platform-name">Instagram</span>
+              </div>
+              <div class="progress-track">
+                <div class="progress-fill fill-ig" id="barIG" style="width: 40%;"></div>
+              </div>
+              <div class="platform-value" id="valIG">8</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= 2. VIEW: ผังที่นั่ง (Seat Map) ================= -->
+      <section id="view-seats" class="view-section">
+        <header class="page-header">
+          <h1 class="page-title">ผังที่นั่ง</h1>
+          <p class="page-subtitle" id="seatsSubtitle">คลิกที่นั่งเพื่อดูรายละเอียดหรือมอบหมายแขก</p>
+        </header>
+
+        <div class="two-column-layout">
+          <!-- Left: Cinema Screen & 60 Seats -->
+          <div class="theater-container">
+            <!-- Cinema Screen Arc Curve with Golden Glow -->
+            <div class="screen-wrapper">
+              <div class="screen-arc"></div>
+              <div class="screen-label">จอภาพ</div>
+              <div class="screen-glow"></div>
+            </div>
+
+            <!-- 60 Seat Grid (6 Rows A-F, 10 Cols with Aisle) -->
+            <div class="seats-grid" id="seatsGrid">
+              <!-- Dynamically rendered via JS -->
+            </div>
+
+            <!-- Legend -->
+            <div class="seat-legend">
+              <div class="legend-item">
+                <span class="legend-box vip"></span>
+                <span>VIP</span>
+              </div>
+              <div class="legend-item">
+                <span class="legend-box press"></span>
+                <span>สื่อ</span>
+              </div>
+              <div class="legend-item">
+                <span class="legend-box creator"></span>
+                <span>ครีเอเตอร์</span>
+              </div>
+              <div class="legend-item">
+                <span class="legend-box empty"></span>
+                <span>ว่าง</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: Seat Detail Panel -->
+          <div class="side-panel" id="seatSidePanel">
+            <div class="panel-placeholder" id="seatPanelPlaceholder">
+              <p>เลือกที่นั่งจากผังด้านซ้ายเพื่อดูรายละเอียด เช่น ใครนั่ง โซนไหน หรือมอบหมายแขกให้ที่นั่งว่าง</p>
+            </div>
+            <div class="panel-content hidden" id="seatPanelContent">
+              <!-- Dynamically populated when a seat is clicked -->
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= 3. VIEW: รายชื่อแขก (Guest List) ================= -->
+      <section id="view-guests" class="view-section">
+        <header class="page-header">
+          <h1 class="page-title">รายชื่อแขก</h1>
+          <p class="page-subtitle" id="guestsSubtitle">ค้นหาและกรองแขกตามช่องทางหรือสถานะการตอบรับ</p>
+        </header>
+
+        <!-- Filter & Search Toolbar -->
+        <div class="table-toolbar">
+          <div class="search-box">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" id="guestSearchInput" placeholder="ค้นหาชื่อ สังกัด เบอร์ อีเมล หรือ handle">
+          </div>
+
+          <div class="toolbar-actions">
+            <select id="filterStatus" class="select-dropdown">
+              <option value="all">ทุกสถานะ</option>
+              <option value="accepted">ตอบรับแล้ว</option>
+              <option value="pending">รอตอบรับ</option>
+              <option value="declined">ปฏิเสธ</option>
+            </select>
+
+            <select id="filterPlatform" class="select-dropdown">
+              <option value="all">ทุกแพลตฟอร์ม</option>
+              <option value="youtube">YouTube</option>
+              <option value="tiktok">TikTok</option>
+              <option value="facebook">Facebook</option>
+              <option value="instagram">Instagram</option>
+            </select>
+
+            <button class="btn btn-primary" id="btnOpenAddGuestModal">
+              <i class="fa-solid fa-plus"></i> เพิ่มแขก
+            </button>
+          </div>
+        </div>
+
+        <div class="two-column-layout">
+          <!-- Left: Guest Table -->
+          <div class="table-container">
+            <table class="guest-table">
+              <thead>
+                <tr>
+                  <th style="width: 28%;">ชื่อ</th>
+                  <th style="width: 34%;">ช่องทาง</th>
+                  <th style="width: 18%;">สถานะ</th>
+                  <th style="width: 20%;">ที่นั่ง</th>
+                </tr>
+              </thead>
+              <tbody id="guestTableBody">
+                <!-- Dynamically populated via JS -->
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Right: Guest Detail Panel -->
+          <div class="side-panel" id="guestSidePanel">
+            <div class="panel-placeholder" id="guestPanelPlaceholder">
+              <p>เลือกแขกจากตารางด้านซ้ายเพื่อดูข้อมูลติดต่อและช่องทางคอนเทนต์ทั้งหมด</p>
+            </div>
+            <div class="panel-content hidden" id="guestPanelContent">
+              <!-- Dynamically populated when a guest is clicked -->
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Modal: เพิ่มรอบหนังใหม่ -->
+  <div class="modal-overlay hidden" id="modalAddScreening">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 class="modal-title"><i class="fa-solid fa-film"></i> เพิ่มรอบภาพยนตร์ใหม่</h3>
+        <button class="btn-close" id="btnCloseAddScreeningModal"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form id="formAddScreening" class="modal-form">
+        <div class="form-group">
+          <label>ชื่อภาพยนตร์ / ชื่องานรอบฉาย *</label>
+          <input type="text" id="addScreeningTitle" required placeholder="เช่น รอบพิเศษสำหรับสื่อ - Avatar: Fire and Ash">
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>สาขาโรงภาพยนตร์ *</label>
+            <select id="addScreeningBranch" required></select>
+          </div>
+          <div class="form-group">
+            <label>โรงภาพยนตร์ (Theater) *</label>
+            <input type="text" id="addScreeningTheater" required placeholder="เช่น โรงภาพยนตร์ 1, IMAX Laser">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>วันที่จัดฉาย *</label>
+            <input type="date" id="addScreeningDate" required>
+          </div>
+          <div class="form-group">
+            <label>เวลาเริ่มฉาย *</label>
+            <input type="time" id="addScreeningTime" required value="19:00">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>ประเภทสื่อ / กิจกรรม</label>
+            <select id="addScreeningMediaType">
+              <option value="movie">ภาพยนตร์ (Movie)</option>
+              <option value="documentary">สารคดี (Documentary)</option>
+              <option value="event">อีเวนต์ / กาล่าพรีเมียร์ (Event)</option>
+              <option value="ad">โฆษณา / รอบทดลอง (Ad)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>จำนวนที่นั่ง (ความจุ)</label>
+            <input type="number" id="addScreeningCapacity" value="60" min="10" max="500">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>สถานะรอบฉาย</label>
+          <select id="addScreeningStatus">
+            <option value="scheduled" selected>กำหนดการ (Scheduled)</option>
+            <option value="completed">เสร็จสิ้น (Completed)</option>
+            <option value="cancelled">ยกเลิก (Cancelled)</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>หมายเหตุ / รายละเอียดงาน</label>
+          <textarea id="addScreeningNotes" rows="2" placeholder="เช่น ประตูเปิด 18:30 น., มีสัมภาษณ์นักแสดงนำหลังฉาย"></textarea>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" id="btnCancelAddScreening">ยกเลิก</button>
+          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> บันทึกรอบหนังใหม่</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: ตั้งค่ารอบหนัง (Edit Screening) -->
+  <div class="modal-overlay hidden" id="modalEditScreening">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 class="modal-title"><i class="fa-solid fa-gear"></i> ตั้งค่ารอบภาพยนตร์</h3>
+        <button class="btn-close" id="btnCloseEditScreeningModal"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form id="formEditScreening" class="modal-form">
+        <input type="hidden" id="editScreeningId">
+
+        <div class="form-group">
+          <label>ชื่อภาพยนตร์ / ชื่องานรอบฉาย *</label>
+          <input type="text" id="editScreeningTitle" required>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>สาขาโรงภาพยนตร์ *</label>
+            <select id="editScreeningBranch" required></select>
+          </div>
+          <div class="form-group">
+            <label>โรงภาพยนตร์ (Theater) *</label>
+            <input type="text" id="editScreeningTheater" required>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>วันที่จัดฉาย *</label>
+            <input type="date" id="editScreeningDate" required>
+          </div>
+          <div class="form-group">
+            <label>เวลาเริ่มฉาย *</label>
+            <input type="time" id="editScreeningTime" required>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>ประเภทสื่อ / กิจกรรม</label>
+            <select id="editScreeningMediaType">
+              <option value="movie">ภาพยนตร์ (Movie)</option>
+              <option value="documentary">สารคดี (Documentary)</option>
+              <option value="event">อีเวนต์ / กาล่าพรีเมียร์ (Event)</option>
+              <option value="ad">โฆษณา / รอบทดลอง (Ad)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>จำนวนที่นั่ง (ความจุ)</label>
+            <input type="number" id="editScreeningCapacity" min="10" max="500">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>สถานะรอบฉาย</label>
+          <select id="editScreeningStatus">
+            <option value="scheduled">กำหนดการ (Scheduled)</option>
+            <option value="completed">เสร็จสิ้น (Completed)</option>
+            <option value="cancelled">ยกเลิก (Cancelled)</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>หมายเหตุ / รายละเอียดงาน</label>
+          <textarea id="editScreeningNotes" rows="2"></textarea>
+        </div>
+
+        <div class="modal-actions" style="justify-content: space-between;">
+          <button type="button" class="btn btn-danger" id="btnDeleteScreening">
+            <i class="fa-solid fa-trash"></i> ลบรอบนี้
+          </button>
+          <div style="display: flex; gap: 10px;">
+            <button type="button" class="btn btn-secondary" id="btnCancelEditScreening">ยกเลิก</button>
+            <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> บันทึกการตั้งค่า</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: เพิ่มแขกใหม่ -->
+  <div class="modal-overlay hidden" id="modalAddGuest">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 class="modal-title"><i class="fa-solid fa-user-plus"></i> เพิ่มแขกใหม่</h3>
+        <button class="btn-close" id="btnCloseAddGuestModal"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form id="formAddGuest" class="modal-form">
+        <div class="form-row">
+          <div class="form-group">
+            <label>ชื่อ-นามสกุล *</label>
+            <input type="text" id="addGuestName" required placeholder="เช่น ชลเทพ เกียรติกุล">
+          </div>
+          <div class="form-group">
+            <label>สังกัด / ช่องทางหลัก</label>
+            <input type="text" id="addGuestOrg" placeholder="เช่น ชื่นชอบหนัง, อิสระ">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>ประเภทแขก</label>
+            <select id="addGuestType">
+              <option value="vip">VIP</option>
+              <option value="press">สื่อ (Press)</option>
+              <option value="creator">ครีเอเตอร์ (Creator)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>สถานะการตอบรับ</label>
+            <select id="addGuestStatus">
+              <option value="accepted">ตอบรับแล้ว</option>
+              <option value="pending" selected>รอตอบรับ</option>
+              <option value="declined">ปฏิเสธ</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>เบอร์โทรศัพท์</label>
+            <input type="tel" id="addGuestPhone" placeholder="08x-xxx-xxxx">
+          </div>
+          <div class="form-group">
+            <label>อีเมล</label>
+            <input type="email" id="addGuestEmail" placeholder="example@email.com">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>ยอดผู้ติดตามบนแพลตฟอร์ม</label>
+          <div class="platform-inputs">
+            <div class="p-input-group">
+              <span class="p-badge tt"><i class="fa-brands fa-tiktok"></i> TikTok</span>
+              <input type="text" id="addFollowerTT" placeholder="เช่น 280k">
+            </div>
+            <div class="p-input-group">
+              <span class="p-badge ig"><i class="fa-brands fa-instagram"></i> IG</span>
+              <input type="text" id="addFollowerIG" placeholder="เช่น 350k">
+            </div>
+            <div class="p-input-group">
+              <span class="p-badge fb"><i class="fa-brands fa-facebook-f"></i> FB</span>
+              <input type="text" id="addFollowerFB" placeholder="เช่น 120k">
+            </div>
+            <div class="p-input-group">
+              <span class="p-badge yt"><i class="fa-brands fa-youtube"></i> YT</span>
+              <input type="text" id="addFollowerYT" placeholder="เช่น 450k">
+            </div>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>มอบหมายที่นั่ง (ถ้ามี)</label>
+            <select id="addGuestSeat">
+              <option value="">-- ยังไม่จัดที่นั่ง --</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>หมายเหตุ</label>
+          <textarea id="addGuestNotes" rows="2" placeholder="บันทึกข้อความเพิ่มเติม"></textarea>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" id="btnCancelAddGuest">ยกเลิก</button>
+          <button type="submit" class="btn btn-primary">บันทึกข้อมูล</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="js/api.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

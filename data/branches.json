@@ -1,0 +1,6 @@
+[
+  { "id": "branch-01", "name": "SF Cinema MBK", "group": "SF", "location": "MBK Center" },
+  { "id": "branch-02", "name": "SF Cinema Central World", "group": "SF", "location": "Central World" },
+  { "id": "branch-03", "name": "Major รัชโยธิน", "group": "Major", "location": "รัชโยธิน" },
+  { "id": "branch-04", "name": "Major Cineplex Paragon", "group": "Major", "location": "Siam Paragon" }
+]

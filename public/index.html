@@ -62,6 +62,9 @@
           <select id="activeScreeningSelect" class="screening-select"></select>
         </div>
         <div class="screening-actions">
+          <button id="btnOpenImportCsvTop" class="btn btn-secondary btn-open-import-csv" style="background: rgba(245, 158, 11, 0.12); border-color: rgba(245, 158, 11, 0.4); color: var(--color-gold);">
+            <i class="fa-solid fa-file-csv"></i> นำเข้าข้อมูล CSV
+          </button>
           <button id="btnEditScreening" class="btn btn-secondary">
             <i class="fa-solid fa-gear"></i> ตั้งค่ารอบนี้
           </button>
@@ -78,124 +81,262 @@
           <p class="page-subtitle" id="overviewSubtitle">รอบพิเศษสำหรับสื่อ · โรงภาพยนตร์ 1 · 60 ที่นั่ง</p>
         </header>
 
-        <!-- 4 Summary KPI Cards -->
+        <!-- 5 Summary KPI Cards -->
         <div class="stats-grid">
           <div class="stat-card">
-            <div class="stat-number" id="statTotalGuests">22</div>
-            <div class="stat-label">แขกทั้งหมด</div>
+            <div class="stat-number" id="statTotalGuests">0</div>
+            <div class="stat-label">สื่อ/แขกทั้งหมด</div>
           </div>
           <div class="stat-card">
-            <div class="stat-number stat-highlight" id="statAccepted">17</div>
-            <div class="stat-label">ตอบรับแล้ว</div>
+            <div class="stat-number stat-highlight" id="statTotalParticipants">0</div>
+            <div class="stat-label">โควตาที่นั่งรวม (คน)</div>
           </div>
           <div class="stat-card">
-            <div class="stat-number" id="statPending">2</div>
-            <div class="stat-label">รอตอบรับ</div>
+            <div class="stat-number" id="statBookedSeats">0/1164</div>
+            <div class="stat-label">ที่นั่งในผังที่จัดแล้ว</div>
           </div>
           <div class="stat-card">
-            <div class="stat-number" id="statBookedSeats">21/60</div>
-            <div class="stat-label">ที่นั่งถูกจอง</div>
+            <div class="stat-number stat-checkin" id="statCheckedIn">0</div>
+            <div class="stat-label">เซ็นชื่อเช็คอินแล้ว ✓</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-number" id="statPendingSign" style="color: #fbbf24;">0</div>
+            <div class="stat-label">รอเซ็นชื่อเช็คอิน</div>
           </div>
         </div>
 
-        <!-- Platform Distribution Card -->
-        <div class="content-card platform-card">
+        <!-- Event Operational Progress Card (Replaces the old platform distribution card) -->
+        <div class="content-card progress-summary-card">
           <div class="card-header">
-            <h2 class="card-title">แขกแบ่งตามแพลตฟอร์ม</h2>
-            <p class="card-subtitle">จำนวนแขกที่ทำคอนเทนต์ในแต่ละช่องทาง (นับซ้ำหากมีหลายช่องทาง)</p>
+            <h2 class="card-title"><i class="fa-solid fa-chart-line" style="color: var(--color-gold); margin-right: 8px;"></i>ความคืบหน้าการเช็คอินและการจัดที่นั่งรอบฉาย</h2>
+            <p class="card-subtitle">ภาพรวมการดำเนินงานหน้างานตามเวลาจริงสำหรับรอบภาพยนตร์ปัจจุบัน</p>
           </div>
 
-          <div class="platform-bars" id="platformBarsContainer">
-            <!-- YouTube -->
-            <div class="platform-bar-row">
+          <div class="platform-bars">
+            <!-- Check-in Progress -->
+            <div class="platform-bar-row" style="grid-template-columns: 150px 1fr 180px;">
               <div class="platform-info">
-                <span class="platform-icon yt"><i class="fa-brands fa-youtube"></i></span>
-                <span class="platform-name">YouTube</span>
+                <span class="platform-icon" style="color: #34d399;"><i class="fa-solid fa-circle-check"></i></span>
+                <span class="platform-name">เซ็นชื่อเช็คอิน</span>
               </div>
               <div class="progress-track">
-                <div class="progress-fill fill-yt" id="barYT" style="width: 70%;"></div>
+                <div class="progress-fill" id="barCheckIn" style="width: 0%; background: #10b981;"></div>
               </div>
-              <div class="platform-value" id="valYT">14</div>
+              <div class="platform-value" id="valCheckIn" style="color: #34d399; font-family: monospace; font-size: 13px;">0/0 คน (0%)</div>
             </div>
 
-            <!-- TikTok -->
-            <div class="platform-bar-row">
+            <!-- Seat Occupancy Progress -->
+            <div class="platform-bar-row" style="grid-template-columns: 150px 1fr 180px;">
               <div class="platform-info">
-                <span class="platform-icon tt"><i class="fa-brands fa-tiktok"></i></span>
-                <span class="platform-name">TikTok</span>
+                <span class="platform-icon" style="color: var(--color-gold);"><i class="fa-solid fa-couch"></i></span>
+                <span class="platform-name">จัดที่นั่งในโรง</span>
               </div>
               <div class="progress-track">
-                <div class="progress-fill fill-tt" id="barTT" style="width: 70%;"></div>
+                <div class="progress-fill" id="barSeats" style="width: 0%; background: var(--color-gold);"></div>
               </div>
-              <div class="platform-value" id="valTT">14</div>
+              <div class="platform-value" id="valSeats" style="color: var(--color-gold); font-family: monospace; font-size: 13px;">0/1164 ที่ (0%)</div>
             </div>
+          </div>
 
-            <!-- Facebook -->
-            <div class="platform-bar-row">
-              <div class="platform-info">
-                <span class="platform-icon fb"><i class="fa-brands fa-facebook-f"></i></span>
-                <span class="platform-name">Facebook</span>
-              </div>
-              <div class="progress-track">
-                <div class="progress-fill fill-fb" id="barFB" style="width: 50%;"></div>
-              </div>
-              <div class="platform-value" id="valFB">10</div>
-            </div>
-
-            <!-- Instagram -->
-            <div class="platform-bar-row">
-              <div class="platform-info">
-                <span class="platform-icon ig"><i class="fa-brands fa-instagram"></i></span>
-                <span class="platform-name">Instagram</span>
-              </div>
-              <div class="progress-track">
-                <div class="progress-fill fill-ig" id="barIG" style="width: 40%;"></div>
-              </div>
-              <div class="platform-value" id="valIG">8</div>
-            </div>
+          <!-- Quick Navigation Action Row -->
+          <div style="margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--border-subtle); display: flex; gap: 12px; flex-wrap: wrap;">
+            <button type="button" class="btn btn-primary" onclick="switchView('seats')">
+              <i class="fa-solid fa-couch"></i> ไปยังผังที่นั่งโรงภาพยนตร์ (1,164 ที่นั่ง)
+            </button>
+            <button type="button" class="btn btn-secondary" onclick="switchView('guests')">
+              <i class="fa-solid fa-users"></i> ไปยังตารางรายชื่อแขก & เซ็นชื่อ
+            </button>
+            <button type="button" class="btn btn-secondary btn-open-import-csv">
+              <i class="fa-solid fa-file-csv" style="color: var(--color-gold);"></i> นำเข้าข้อมูล CSV / Excel
+            </button>
           </div>
         </div>
       </section>
 
-      <!-- ================= 2. VIEW: ผังที่นั่ง (Seat Map) ================= -->
+      <!-- ================= 2. VIEW: ผังที่นั่งโรงภาพยนตร์ (Cinema Auditorium View) ================= -->
       <section id="view-seats" class="view-section">
-        <header class="page-header">
-          <h1 class="page-title">ผังที่นั่ง</h1>
-          <p class="page-subtitle" id="seatsSubtitle">คลิกที่นั่งเพื่อดูรายละเอียดหรือมอบหมายแขก</p>
+        <header class="page-header page-header-flex">
+          <div>
+            <h1 class="page-title">ผังที่นั่งโรงภาพยนตร์เสมือนจริง</h1>
+            <p class="page-subtitle" id="seatsSubtitle">คลิกที่นั่งเพื่อดูรายละเอียด มอบหมายแขก หรือเช็คอินหน้างาน</p>
+          </div>
+
+          <!-- Seat View Mode Controls & Tier Filter -->
+          <div class="seat-view-controls-wrapper">
+            <!-- Tier Tabs (Stalls vs Balcony vs All) -->
+            <div style="display: flex; gap: 10px; align-items: center; justify-content: flex-end; flex-wrap: wrap;">
+              <button class="btn btn-secondary btn-open-import-csv" id="btnOpenImportCsvFromSeats" style="padding: 6px 14px; font-size: 12px; background: rgba(245, 158, 11, 0.12); border-color: rgba(245, 158, 11, 0.4); color: var(--color-gold);">
+                <i class="fa-solid fa-file-csv"></i> นำเข้าข้อมูล CSV / Excel
+              </button>
+                            <button class="btn btn-primary" id="btnOpenGroupWalkInFromSeats" style="padding: 6px 14px; font-size: 12px; background: linear-gradient(135deg, #0d9488 0%, #14b8a6 100%);">
+                <i class="fa-solid fa-person-walking-dashed-line-arrow-right"></i> + เพิ่ม Walk-in (เดี่ยว / กลุ่ม)
+              </button>
+              <div class="pavalai-tier-tabs" id="tierTabs">
+                <button class="tier-tab-btn active" data-tier="all" id="btnTierAll">
+                  <i class="fa-solid fa-layer-group"></i> ทั้งหมด (1,164 ที่นั่ง)
+                </button>
+                <button class="tier-tab-btn" data-tier="stalls" id="btnTierStalls">
+                  <i class="fa-solid fa-users"></i> ชั้นล่าง Grand Stalls (919)
+                </button>
+                <button class="tier-tab-btn" data-tier="balcony" id="btnTierBalcony">
+                  <i class="fa-solid fa-crown"></i> ชั้นลอย Royal Balcony (245)
+                </button>
+              </div>
+            </div>
+
+            <!-- Seat Filter Buttons -->
+            <div class="seat-view-controls">
+              <button class="seat-filter-btn active" data-filter="all" id="btnFilterSeatAll">
+                <i class="fa-solid fa-border-all"></i> ทุกสถานะ
+              </button>
+              <button class="seat-filter-btn" data-filter="sweet-spot" id="btnFilterSweetSpot">
+                <i class="fa-solid fa-bullseye"></i> Sweet Spot
+              </button>
+              <button class="seat-filter-btn" data-filter="vip" id="btnFilterSeatVip">
+                <i class="fa-solid fa-crown"></i> Paragon VIP
+              </button>
+              <button class="seat-filter-btn" data-filter="press" id="btnFilterSeatPress">
+                <i class="fa-solid fa-gem"></i> Privilege
+              </button>
+              <button class="seat-filter-btn" data-filter="creator" id="btnFilterSeatCreator">
+                <i class="fa-solid fa-video"></i> Standard
+              </button>
+              <button class="seat-filter-btn" data-filter="checked-in" id="btnFilterSeatCheckedIn">
+                <i class="fa-solid fa-circle-check"></i> เช็คอินแล้ว
+              </button>
+              <button class="seat-filter-btn" data-filter="empty" id="btnFilterSeatEmpty">
+                <i class="fa-solid fa-couch"></i> ว่าง
+              </button>
+            </div>
+          </div>
         </header>
 
         <div class="two-column-layout">
-          <!-- Left: Cinema Screen & 60 Seats -->
-          <div class="theater-container">
-            <!-- Cinema Screen Arc Curve with Golden Glow -->
-            <div class="screen-wrapper">
-              <div class="screen-arc"></div>
-              <div class="screen-label">จอภาพ</div>
-              <div class="screen-glow"></div>
+          <!-- Left: Realistic Cinema Auditorium (Pavalai Grand Theatre) -->
+          <div class="theater-container pavalai-auditorium-container" id="theaterAuditorium">
+            <!-- Auditorium Top: Projector Light & Emergency Exits -->
+            <div class="auditorium-top-banner">
+              <div class="exit-sign exit-left">
+                <i class="fa-solid fa-person-walking-arrow-right"></i> EXIT ทางออก
+              </div>
+
+              <!-- Cinema Screen Arc with Realistic Silver Screen Curve & Reflection -->
+              <div class="screen-wrapper">
+                <div class="screen-arc-realistic">
+                  <div class="screen-surface">
+                    <span class="screen-text"><i class="fa-solid fa-film"></i> จอภาพยนตร์ยักษ์โค้ง · PAVALAI ROYAL SCREEN</span>
+                  </div>
+                </div>
+                <div class="screen-ambient-glow"></div>
+                <div class="screen-floor-reflection"></div>
+              </div>
+
+              <div class="exit-sign exit-right">
+                ทางออก EXIT <i class="fa-solid fa-person-walking-arrow-right"></i>
+              </div>
             </div>
 
-            <!-- 60 Seat Grid (6 Rows A-F, 10 Cols with Aisle) -->
-            <div class="seats-grid" id="seatsGrid">
-              <!-- Dynamically rendered via JS -->
+            <!-- Main Stage (เวทีหลัก) in front of screen -->
+            <div class="cinema-stage-platform" id="cinemaStage">
+              <span class="stage-tag"><i class="fa-solid fa-microphone-lines"></i> เวทีหลัก (STAGE) · โรงภาพยนตร์สยามภาวลัย แกรนด์ เธียเตอร์</span>
             </div>
 
-            <!-- Legend -->
-            <div class="seat-legend">
+            <!-- Cinema Seating Chamber with Realistic Walls & Step Lights -->
+            <div class="seating-chamber pavalai-chamber">
+              <!-- Left Acoustic Wall with Sconce Lights -->
+              <div class="acoustic-wall wall-left">
+                <div class="wall-sconce"></div>
+                <div class="wall-sconce"></div>
+                <div class="wall-sconce"></div>
+                <div class="wall-sconce"></div>
+              </div>
+
+              <!-- Main Seating Area -->
+              <div class="auditorium-seats-wrap pavalai-seats-wrap">
+                <!-- Sweet Spot Boundary Indicator Overlay -->
+                <div class="sweet-spot-indicator hidden" id="sweetSpotIndicator">
+                  <span class="sweet-spot-badge"><i class="fa-solid fa-star"></i> PRIME ACOUSTIC & VISUAL SWEET SPOT (แถว G-L)</span>
+                </div>
+
+                <!-- Realistic Seats Grid -->
+                <div class="seats-grid realistic-grid pavalai-grid" id="seatsGrid">
+                  <!-- Dynamically rendered via JS from pavalai_layout.json -->
+                </div>
+              </div>
+
+              <!-- Right Acoustic Wall with Sconce Lights -->
+              <div class="acoustic-wall wall-right">
+                <div class="wall-sconce"></div>
+                <div class="wall-sconce"></div>
+                <div class="wall-sconce"></div>
+                <div class="wall-sconce"></div>
+              </div>
+            </div>
+
+            <!-- Cinema Floor Step Lights & Sound Spec -->
+            <div class="auditorium-bottom-bar">
+              <div class="aisle-lighting-indicator">
+                <span class="step-light"></span>
+                <span class="step-light"></span>
+                <span class="audio-spec-text"><i class="fa-solid fa-volume-high"></i> DOLBY ATMOS · 4K LASER PROJECTION · 1,164 SEATS</span>
+                <span class="step-light"></span>
+                <span class="step-light"></span>
+              </div>
+            </div>
+
+            <!-- Pavalai Realistic Legend -->
+            <div class="seat-legend realistic-legend pavalai-legend">
               <div class="legend-item">
-                <span class="legend-box vip"></span>
-                <span>VIP</span>
+                <div class="legend-seat-sample vip-sample">
+                  <span class="sample-arm"></span>
+                  <span class="sample-body"></span>
+                  <span class="sample-arm"></span>
+                </div>
+                <span>Paragon VIP / Sofa (VP, AA, FH, FG)</span>
               </div>
               <div class="legend-item">
-                <span class="legend-box press"></span>
-                <span>สื่อ</span>
+                <div class="legend-seat-sample privilege-sample">
+                  <span class="sample-arm"></span>
+                  <span class="sample-body"></span>
+                  <span class="sample-arm"></span>
+                </div>
+                <span>Privilege Chair / XL (A - M)</span>
               </div>
               <div class="legend-item">
-                <span class="legend-box creator"></span>
-                <span>ครีเอเตอร์</span>
+                <div class="legend-seat-sample standard-sample">
+                  <span class="sample-arm"></span>
+                  <span class="sample-body"></span>
+                  <span class="sample-arm"></span>
+                </div>
+                <span>Standard Hall (N - X)</span>
               </div>
               <div class="legend-item">
-                <span class="legend-box empty"></span>
-                <span>ว่าง</span>
+                <div class="legend-seat-sample balcony-sample">
+                  <span class="sample-arm"></span>
+                  <span class="sample-body"></span>
+                  <span class="sample-arm"></span>
+                </div>
+                <span>Royal Balcony (FA - FF)</span>
+              </div>
+              <div class="legend-item">
+                <div class="legend-seat-sample checkedin-sample">
+                  <span class="sample-arm"></span>
+                  <span class="sample-body"><i class="fa-solid fa-check"></i></span>
+                  <span class="sample-arm"></span>
+                </div>
+                <span>เช็คอินหน้างานแล้ว</span>
+              </div>
+              <div class="legend-item">
+                <div class="legend-seat-sample empty-sample">
+                  <span class="sample-arm"></span>
+                  <span class="sample-body"></span>
+                  <span class="sample-arm"></span>
+                </div>
+                <span>ที่นั่งว่าง</span>
+              </div>
+              <div class="legend-item">
+                <span class="legend-sweet-sample"></span>
+                <span>Sweet Spot Zone</span>
               </div>
             </div>
           </div>
@@ -203,13 +344,16 @@
           <!-- Right: Seat Detail Panel -->
           <div class="side-panel" id="seatSidePanel">
             <div class="panel-placeholder" id="seatPanelPlaceholder">
-              <p>เลือกที่นั่งจากผังด้านซ้ายเพื่อดูรายละเอียด เช่น ใครนั่ง โซนไหน หรือมอบหมายแขกให้ที่นั่งว่าง</p>
+              <p>เลือกที่นั่งจากผังโรงภาพยนตร์เพื่อดูรายละเอียดแขก ข้อมูลการติดต่อ ช่องทาง หรือเช็คอินหน้างาน</p>
             </div>
             <div class="panel-content hidden" id="seatPanelContent">
               <!-- Dynamically populated when a seat is clicked -->
             </div>
           </div>
         </div>
+
+        <!-- Floating Tooltip Card on Seat Hover -->
+        <div id="seatHoverCard" class="seat-hover-card hidden"></div>
       </section>
 
       <!-- ================= 3. VIEW: รายชื่อแขก (Guest List) ================= -->
@@ -223,25 +367,32 @@
         <div class="table-toolbar">
           <div class="search-box">
             <i class="fa-solid fa-magnifying-glass"></i>
-            <input type="text" id="guestSearchInput" placeholder="ค้นหาชื่อ สังกัด เบอร์ อีเมล หรือ handle">
+            <input type="text" id="guestSearchInput" placeholder="ค้นหาตาม Media, Name, Seat หรือ Tel...">
           </div>
 
           <div class="toolbar-actions">
-            <select id="filterStatus" class="select-dropdown">
-              <option value="all">ทุกสถานะ</option>
-              <option value="accepted">ตอบรับแล้ว</option>
-              <option value="pending">รอตอบรับ</option>
-              <option value="declined">ปฏิเสธ</option>
+            <button class="btn btn-primary" id="btnOpenGroupWalkInFromGuests" style="padding: 6px 14px; font-size: 12px; background: linear-gradient(135deg, #0d9488 0%, #14b8a6 100%);">
+              <i class="fa-solid fa-person-walking-dashed-line-arrow-right"></i> + เพิ่ม Walk-in
+            </button>
+
+            <select id="filterCheckIn" class="select-dropdown">
+              <option value="all">สถานะ Sign (ทั้งหมด)</option>
+              <option value="checked-in">เช็คอินแล้ว (Sign แล้ว ✓)</option>
+              <option value="not-checked">ยังไม่เช็คอิน (ยังไม่ Sign)</option>
             </select>
 
-            <select id="filterPlatform" class="select-dropdown">
-              <option value="all">ทุกแพลตฟอร์ม</option>
-              <option value="youtube">YouTube</option>
-              <option value="tiktok">TikTok</option>
-              <option value="facebook">Facebook</option>
-              <option value="instagram">Instagram</option>
+            <select id="filterSeatStatus" class="select-dropdown">
+              <option value="all">ที่นั่ง (ทั้งหมด)</option>
+              <option value="assigned">จัดที่นั่งแล้ว</option>
+              <option value="unassigned">ยังไม่จัดที่นั่ง</option>
             </select>
 
+            <button class="btn btn-secondary btn-open-import-csv" id="btnOpenImportCsvModal">
+              <i class="fa-solid fa-file-csv" style="color: var(--color-gold);"></i> นำเข้าข้อมูล CSV
+            </button>
+            <button class="btn btn-danger-soft" id="btnOpenBulkDeleteModal" title="ล้างรายชื่อแขกทั้งหมดในรอบนี้อย่างปลอดภัย">
+              <i class="fa-solid fa-trash-can"></i> ล้างแขกในรอบนี้
+            </button>
             <button class="btn btn-primary" id="btnOpenAddGuestModal">
               <i class="fa-solid fa-plus"></i> เพิ่มแขก
             </button>
@@ -254,10 +405,12 @@
             <table class="guest-table">
               <thead>
                 <tr>
-                  <th style="width: 28%;">ชื่อ</th>
-                  <th style="width: 34%;">ช่องทาง</th>
-                  <th style="width: 18%;">สถานะ</th>
-                  <th style="width: 20%;">ที่นั่ง</th>
+                  <th style="width: 24%;">Media (สื่อ / สังกัด)</th>
+                  <th style="width: 22%;">Name (ชื่อแขก)</th>
+                  <th style="width: 12%; text-align: center;">Participant</th>
+                  <th style="width: 18%;">Seat (ที่นั่ง)</th>
+                  <th style="width: 12%; text-align: center;">Sign (เช็คอิน)</th>
+                  <th style="width: 12%;">Tel (เบอร์โทร)</th>
                 </tr>
               </thead>
               <tbody id="guestTableBody">
@@ -269,7 +422,7 @@
           <!-- Right: Guest Detail Panel -->
           <div class="side-panel" id="guestSidePanel">
             <div class="panel-placeholder" id="guestPanelPlaceholder">
-              <p>เลือกแขกจากตารางด้านซ้ายเพื่อดูข้อมูลติดต่อและช่องทางคอนเทนต์ทั้งหมด</p>
+              <p>เลือกแขกจากตารางด้านซ้ายเพื่อดูและจัดการข้อมูล Media, Name, Participant, Seat, Sign และ Tel</p>
             </div>
             <div class="panel-content hidden" id="guestPanelContent">
               <!-- Dynamically populated when a guest is clicked -->
@@ -294,14 +447,19 @@
           <input type="text" id="addScreeningTitle" required placeholder="เช่น รอบพิเศษสำหรับสื่อ - Avatar: Fire and Ash">
         </div>
 
-        <div class="form-row">
+        <div class="form-group">
+          <label>สาขาและโรงภาพยนตร์ (Cinema & Theater) *</label>
+          <select id="addScreeningVenue" class="select-dropdown" style="width: 100%;" required></select>
+        </div>
+
+        <div class="form-row hidden" id="addCustomVenueRow">
           <div class="form-group">
-            <label>สาขาโรงภาพยนตร์ *</label>
-            <select id="addScreeningBranch" required></select>
+            <label>ระบุชื่อสาขาเอง *</label>
+            <input type="text" id="addCustomBranchName" placeholder="เช่น Icon Cineconic">
           </div>
           <div class="form-group">
-            <label>โรงภาพยนตร์ (Theater) *</label>
-            <input type="text" id="addScreeningTheater" required placeholder="เช่น โรงภาพยนตร์ 1, IMAX Laser">
+            <label>ระบุชื่อโรงภาพยนตร์เอง *</label>
+            <input type="text" id="addCustomTheaterName" placeholder="เช่น 4DX, Theater 8">
           </div>
         </div>
 
@@ -328,7 +486,7 @@
           </div>
           <div class="form-group">
             <label>จำนวนที่นั่ง (ความจุ)</label>
-            <input type="number" id="addScreeningCapacity" value="60" min="10" max="500">
+            <input type="number" id="addScreeningCapacity" value="1164" min="10" max="2000">
           </div>
         </div>
 
@@ -369,14 +527,19 @@
           <input type="text" id="editScreeningTitle" required>
         </div>
 
-        <div class="form-row">
+        <div class="form-group">
+          <label>สาขาและโรงภาพยนตร์ (Cinema & Theater) *</label>
+          <select id="editScreeningVenue" class="select-dropdown" style="width: 100%;" required></select>
+        </div>
+
+        <div class="form-row hidden" id="editCustomVenueRow">
           <div class="form-group">
-            <label>สาขาโรงภาพยนตร์ *</label>
-            <select id="editScreeningBranch" required></select>
+            <label>ระบุชื่อสาขาเอง *</label>
+            <input type="text" id="editCustomBranchName">
           </div>
           <div class="form-group">
-            <label>โรงภาพยนตร์ (Theater) *</label>
-            <input type="text" id="editScreeningTheater" required>
+            <label>ระบุชื่อโรงภาพยนตร์เอง *</label>
+            <input type="text" id="editCustomTheaterName">
           </div>
         </div>
 
@@ -403,7 +566,7 @@
           </div>
           <div class="form-group">
             <label>จำนวนที่นั่ง (ความจุ)</label>
-            <input type="number" id="editScreeningCapacity" min="10" max="500">
+            <input type="number" id="editScreeningCapacity" min="10" max="2000">
           </div>
         </div>
 
@@ -444,91 +607,541 @@
       <form id="formAddGuest" class="modal-form">
         <div class="form-row">
           <div class="form-group">
-            <label>ชื่อ-นามสกุล *</label>
-            <input type="text" id="addGuestName" required placeholder="เช่น ชลเทพ เกียรติกุล">
+            <label>Media (สื่อ / สังกัด / เพจ) *</label>
+            <input type="text" id="addGuestOrg" required placeholder="เช่น akai peanut, Akibatan, Daily news">
           </div>
           <div class="form-group">
-            <label>สังกัด / ช่องทางหลัก</label>
-            <input type="text" id="addGuestOrg" placeholder="เช่น ชื่นชอบหนัง, อิสระ">
-          </div>
-        </div>
-
-        <div class="form-row">
-          <div class="form-group">
-            <label>ประเภทแขก</label>
-            <select id="addGuestType">
-              <option value="vip">VIP</option>
-              <option value="press">สื่อ (Press)</option>
-              <option value="creator">ครีเอเตอร์ (Creator)</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>สถานะการตอบรับ</label>
-            <select id="addGuestStatus">
-              <option value="accepted">ตอบรับแล้ว</option>
-              <option value="pending" selected>รอตอบรับ</option>
-              <option value="declined">ปฏิเสธ</option>
-            </select>
+            <label>Name (ชื่อแขก / ผู้ติดต่อ) *</label>
+            <input type="text" id="addGuestName" required placeholder="เช่น พี่นัท, บดีศร, ทีมงาน">
           </div>
         </div>
 
         <div class="form-row">
           <div class="form-group">
-            <label>เบอร์โทรศัพท์</label>
+            <label>Participant (จำนวนโควตา/คน) *</label>
+            <input type="number" id="addGuestParticipant" min="1" max="50" value="1" required>
+          </div>
+          <div class="form-group" style="position: relative;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+              <label style="margin: 0;">Seat (ที่นั่งที่จัดสรร)</label>
+              <button type="button" id="btnOpenSeatPickerForAddGuest" class="btn btn-secondary" style="padding: 2px 8px; font-size: 11px; border-color: var(--color-teal); color: var(--color-teal);">
+                <i class="fa-solid fa-chair"></i> เลือกที่นั่งว่าง (SeatPicker)
+              </button>
+            </div>
+            <div style="position: relative;">
+              <input type="text" id="addGuestSeatText" placeholder="เช่น B16-B17 หรือคลิกค้นหาที่นั่งว่าง" autocomplete="off" style="width: 100%;">
+              <div id="addGuestSeatAutocomplete" class="seat-autocomplete-dropdown hidden"></div>
+            </div>
+            <!-- Quick Recommended Available Seats for Add Guest -->
+            <div id="addGuestQuickSeatSuggestions" style="margin-top: 6px; display: flex; flex-wrap: wrap; gap: 6px; min-height: 24px;"></div>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Tel (เบอร์โทรศัพท์)</label>
             <input type="tel" id="addGuestPhone" placeholder="08x-xxx-xxxx">
           </div>
           <div class="form-group">
-            <label>อีเมล</label>
-            <input type="email" id="addGuestEmail" placeholder="example@email.com">
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label>ยอดผู้ติดตามบนแพลตฟอร์ม</label>
-          <div class="platform-inputs">
-            <div class="p-input-group">
-              <span class="p-badge tt"><i class="fa-brands fa-tiktok"></i> TikTok</span>
-              <input type="text" id="addFollowerTT" placeholder="เช่น 280k">
-            </div>
-            <div class="p-input-group">
-              <span class="p-badge ig"><i class="fa-brands fa-instagram"></i> IG</span>
-              <input type="text" id="addFollowerIG" placeholder="เช่น 350k">
-            </div>
-            <div class="p-input-group">
-              <span class="p-badge fb"><i class="fa-brands fa-facebook-f"></i> FB</span>
-              <input type="text" id="addFollowerFB" placeholder="เช่น 120k">
-            </div>
-            <div class="p-input-group">
-              <span class="p-badge yt"><i class="fa-brands fa-youtube"></i> YT</span>
-              <input type="text" id="addFollowerYT" placeholder="เช่น 450k">
-            </div>
-          </div>
-        </div>
-
-        <div class="form-row">
-          <div class="form-group">
-            <label>มอบหมายที่นั่ง (ถ้ามี)</label>
-            <select id="addGuestSeat">
-              <option value="">-- ยังไม่จัดที่นั่ง --</option>
+            <label>Sign (สถานะเช็คอินหน้างาน)</label>
+            <select id="addGuestAttended" class="select-dropdown" style="width: 100%;">
+              <option value="false">ยังไม่เช็คอิน (รอ Sign)</option>
+              <option value="true">เช็คอินแล้ว (Sign แล้ว ✓)</option>
             </select>
           </div>
-        </div>
-
-        <div class="form-group">
-          <label>หมายเหตุ</label>
-          <textarea id="addGuestNotes" rows="2" placeholder="บันทึกข้อความเพิ่มเติม"></textarea>
         </div>
 
         <div class="modal-actions">
           <button type="button" class="btn btn-secondary" id="btnCancelAddGuest">ยกเลิก</button>
-          <button type="submit" class="btn btn-primary">บันทึกข้อมูล</button>
+          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> บันทึกข้อมูล</button>
         </div>
       </form>
     </div>
   </div>
 
+  <!-- Modal: Import CSV / Excel -->
+  <div class="modal-overlay hidden" id="modalImportCsv">
+    <div class="modal-box" style="width: 860px; max-width: 94vw; max-height: 92vh; display: flex; flex-direction: column;">
+      <div class="modal-header">
+        <h3 class="modal-title"><i class="fa-solid fa-file-csv" style="color: var(--color-gold);"></i> นำเข้าข้อมูลแขกและผังที่นั่งจาก CSV / Excel</h3>
+        <button class="btn-close" id="btnCloseImportCsvModal"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div style="padding: 20px 24px; overflow-y: auto; flex: 1;">
+        <div class="import-instructions">
+          <p>รองรับหัวคอลัมน์: <strong>NO, Media, Name, Participant, Seat, Sign, Tel</strong> (สามารถอัปโหลดไฟล์ <code>.csv</code> หรือ Copy จาก Google Sheets / Excel มาวางได้ทันที)</p>
+        </div>
+
+        <div class="import-tabs">
+          <button type="button" class="import-tab-btn active" data-tab="paste" id="tabBtnPaste"><i class="fa-solid fa-paste"></i> วางข้อมูล (Copy & Paste)</button>
+          <button type="button" class="import-tab-btn" data-tab="file" id="tabBtnFile"><i class="fa-solid fa-file-arrow-up"></i> เลือกไฟล์ CSV</button>
+        </div>
+
+        <!-- Tab 1: Paste Text -->
+        <div class="import-tab-content" id="tabContentPaste">
+          <textarea id="importCsvTextarea" class="import-textarea" rows="7" placeholder="วางข้อมูลที่คัดลอกจาก Google Sheets หรือ Excel ที่นี่...
+ตัวอย่าง:
+NO	Media	Name	Participant	Seat	Sign	Tel
+1	akai peanut	พี่นัท	2	B16-B17		081-xxx-xxxx
+2	Akibatan	บดีศร	2	E7-E8		089-xxx-xxxx
+3	Algorhythm Project	ทีมงาน	1	F10		082-xxx-xxxx"></textarea>
+        </div>
+
+        <!-- Tab 2: File Upload -->
+        <div class="import-tab-content hidden" id="tabContentFile">
+          <div class="drop-zone" id="csvDropZone">
+            <i class="fa-solid fa-cloud-arrow-up drop-zone-icon"></i>
+            <p class="drop-zone-text">ลากไฟล์ CSV มาวางที่นี่ หรือคลิกปุ่มด้านล่าง</p>
+            <input type="file" id="csvFileInput" accept=".csv, .txt, .tsv" class="hidden">
+            <button type="button" class="btn btn-secondary" id="btnBrowseCsvFile">เลือกไฟล์จากเครื่อง (.csv)</button>
+            <span class="file-chosen-name" id="chosenFileName">ยังไม่ได้เลือกไฟล์</span>
+          </div>
+        </div>
+
+        <!-- Options -->
+        <div class="import-options-row">
+          <label class="import-option-label">
+            <input type="radio" name="importMode" value="append" checked>
+            <span>เพิ่มข้อมูลต่อจากแขกเดิมในรอบนี้</span>
+          </label>
+          <label class="import-option-label">
+            <input type="radio" name="importMode" value="replace">
+            <span>ล้างและแทนที่แขกเดิมทั้งหมดในรอบนี้</span>
+          </label>
+        </div>
+
+        <!-- Preview Summary -->
+        <div class="import-preview-wrapper hidden" id="importPreviewWrapper">
+          <div class="preview-header">
+            <span class="preview-title"><i class="fa-solid fa-table-list"></i> ตัวอย่างข้อมูลที่จะนำเข้า (<span id="previewCount">0</span> รายการ)</span>
+            <span class="preview-seat-count" id="previewSeatCount">ที่นั่งรวม: 0 ที่</span>
+          </div>
+          <div class="preview-table-container">
+            <table class="preview-table">
+              <thead>
+                <tr>
+                  <th>ลำดับ</th>
+                  <th>สื่อ / สังกัด</th>
+                  <th>ชื่อแขก</th>
+                  <th>โควตา</th>
+                  <th>ที่นั่งที่จัดไว้ (แตกช่วงแล้ว)</th>
+                  <th>เบอร์ติดต่อ</th>
+                  <th>เช็คอิน</th>
+                </tr>
+              </thead>
+              <tbody id="previewTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="modal-actions" style="margin-top: 20px; padding: 0;">
+          <button type="button" class="btn btn-secondary" id="btnCancelImportCsv">ยกเลิก</button>
+          <button type="button" class="btn btn-primary" id="btnConfirmImportCsv" disabled>
+            <i class="fa-solid fa-check"></i> ยืนยันการนำเข้าข้อมูล
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  
+  <!-- ================= FLOATING MAP SELECTION BAR (When in Interactive Map Picking Mode) ================= -->
+  <div id="floatingMapSelectionBar" class="floating-map-selection-bar hidden">
+    <div class="map-pick-indicator">
+      <span class="map-pick-badge"><i class="fa-solid fa-crosshairs"></i> MULTI-SELECT MAP MODE</span>
+      <div class="map-pick-details">
+        <div class="map-pick-count" id="mapPickCountText">กำลังเลือกที่นั่ง 0 / 1 ที่</div>
+        <div class="map-pick-list" id="mapPickSelectedList">ยังไม่ได้เลือกเก้าอี้ (คลิกบนผัง)</div>
+      </div>
+    </div>
+    <div class="map-pick-actions">
+      <button type="button" class="btn btn-secondary" id="btnCancelMapPick" style="padding: 6px 12px; font-size: 12px;">ยกเลิก</button>
+      <button type="button" class="btn btn-primary" id="btnFinishMapPick" disabled style="padding: 6px 16px; font-size: 12px; background: #0d9488;">
+        <i class="fa-solid fa-check"></i> เสร็จสิ้นการเลือก
+      </button>
+    </div>
+  </div>
+
+  <!-- ================= UNIFIED SEATPICKER MODAL ================= -->
+  <div class="modal-overlay hidden" id="modalSeatPicker">
+    <div class="modal-box" style="width: 680px; max-width: 95vw;">
+      <div class="modal-header" style="border-bottom: none; padding-bottom: 8px;">
+        <div>
+          <h3 class="modal-title" id="seatPickerModalTitle"><i class="fa-solid fa-chair" style="color: var(--color-teal);"></i> จัดที่นั่งในโรงภาพยนตร์ (SeatPicker)</h3>
+          <p style="font-size: 12.5px; color: var(--text-muted); margin: 4px 0 0 0;" id="seatPickerModalDesc">เลือกที่นั่งตามจำนวนที่ต้องการ</p>
+        </div>
+        <button class="btn-close" id="btnCloseSeatPickerModal"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <!-- Parity & Selection Status Banner -->
+      <div style="margin: 0 20px 14px 20px; padding: 12px 16px; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 8px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+        <div>
+          <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">สถานะการเลือกที่นั่ง</div>
+          <div style="font-size: 20px; font-weight: 700; font-family: monospace;" id="seatPickerParityCount">0 / 1</div>
+        </div>
+        <div id="seatPickerParityStatus" style="font-size: 13px; font-weight: 600;">
+          <span style="color: #fbbf24;"><i class="fa-solid fa-clock"></i> ยังเลือกไม่ครบ</span>
+        </div>
+        <div style="width: 100%; margin-top: 4px;">
+          <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px;">ที่นั่งที่เลือกแล้ว:</div>
+          <div id="seatPickerSelectedPills" style="display: flex; flex-wrap: wrap; gap: 6px; min-height: 28px;">
+            <!-- Pills rendered dynamically -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs (3 Modes) -->
+      <div class="seat-picker-nav-tabs">
+        <button type="button" class="seat-picker-tab-btn active" id="btnTabSeatRec">
+          <i class="fa-solid fa-wand-magic-sparkles"></i> แนะนำอัตโนมัติ (Auto Recommend)
+        </button>
+        <button type="button" class="seat-picker-tab-btn" id="btnTabSeatDropdown">
+          <i class="fa-solid fa-list-check"></i> ค้นหาใน Dropdown (Search & Filter)
+        </button>
+        <button type="button" class="seat-picker-tab-btn" id="btnSwitchToMapPick" style="color: var(--color-gold); margin-left: auto;">
+          <i class="fa-solid fa-map-location-dot"></i> สลับไปเลือกจากผังโรง <i class="fa-solid fa-arrow-right"></i>
+        </button>
+      </div>
+
+      <!-- Tab Content 1: Auto Recommend -->
+      <div id="seatPickerTabContentRec" style="padding: 0 20px 16px 20px; max-height: 380px; overflow-y: auto;">
+        <div id="seatPickerRecList">
+          <!-- Recommended groups rendered via JS -->
+        </div>
+      </div>
+
+      <!-- Tab Content 2: Search Dropdown -->
+      <div id="seatPickerTabContentDropdown" class="hidden" style="padding: 0 20px 16px 20px;">
+        <div style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+          <input type="text" id="seatPickerSearchInput" placeholder="ค้นหาเลขที่นั่ง หรือ แถว เช่น E, F12..." style="padding: 8px 12px; background: var(--bg-input); border: 1px solid var(--border-color); border-radius: 6px; color: #fff; font-size: 13px;">
+          <select id="seatPickerTierFilter" style="padding: 8px 10px; background: var(--bg-input); border: 1px solid var(--border-color); border-radius: 6px; color: #fff; font-size: 12.5px;">
+            <option value="all">ทุกชั้น (1,164)</option>
+            <option value="stalls">ชั้นล่าง Grand Stalls</option>
+            <option value="balcony">ชั้นลอย Royal Balcony</option>
+          </select>
+          <select id="seatPickerStatusFilter" style="padding: 8px 10px; background: var(--bg-input); border: 1px solid var(--border-color); border-radius: 6px; color: #fff; font-size: 12.5px;">
+            <option value="all">ทุกสถานะ</option>
+            <option value="available" selected>เฉพาะที่นั่งว่าง</option>
+            <option value="assigned">จัดแล้ว</option>
+            <option value="attended">เช็คอินแล้ว</option>
+          </select>
+        </div>
+
+        <div id="seatPickerDropdownList" style="max-height: 300px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 6px; background: rgba(0,0,0,0.2);">
+          <!-- Dropdown items rendered via JS -->
+        </div>
+      </div>
+
+      <div class="modal-actions" style="margin-top: 10px; padding: 14px 20px; border-top: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+        <button type="button" class="btn btn-secondary" id="btnCancelSeatPicker">ยกเลิก</button>
+        <button type="button" class="btn btn-primary" id="btnConfirmSeatPicker" disabled style="background: linear-gradient(135deg, #0d9488 0%, #14b8a6 100%);">
+          <i class="fa-solid fa-check"></i> ยืนยันที่นั่งที่เลือก
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Walk-in จากผังที่นั่ง -->
+  <div class="modal-overlay hidden" id="modalWalkInSeat">
+    <div class="modal-box" style="width: 520px; max-width: 95vw;">
+      <div class="modal-header">
+        <h3 class="modal-title"><i class="fa-solid fa-person-walking-dashed-line-arrow-right" style="color: var(--color-teal);"></i> เพิ่มแขก Walk-in จากผังที่นั่ง</h3>
+        <button class="btn-close" id="btnCloseWalkInModal"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form id="formWalkIn" class="modal-form">
+        <div class="walkin-seat-badge" style="background: rgba(45, 212, 191, 0.08); border: 1px solid rgba(45, 212, 191, 0.3); padding: 14px 16px; border-radius: 8px; margin-bottom: 16px;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <div>
+              <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">ที่นั่งที่เลือกสำหรับกลุ่มนี้</div>
+              <div id="walkInSeatDisplay" style="font-size: 17px; font-weight: 700; color: var(--color-teal); font-family: monospace; margin-top: 2px;">ยังไม่ได้เลือกที่นั่ง</div>
+            </div>
+            <button type="button" id="btnOpenSeatPickerForWalkIn" class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px; border-color: var(--color-teal); color: var(--color-teal);">
+              <i class="fa-solid fa-chair"></i> เลือกที่นั่ง (SeatPicker)
+            </button>
+          </div>
+          <input type="hidden" id="walkInSeatId">
+          <div id="walkInSeatsPillsContainer" style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px;">
+            <!-- Selected seat badges rendered here -->
+          </div>
+
+          <!-- Quick Adjacent Seats & Direct Add Input -->
+          <div style="margin-top: 10px; padding-top: 8px; border-top: 1px dashed rgba(45, 212, 191, 0.2);">
+            <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px;">
+              <i class="fa-solid fa-plus-circle" style="color: var(--color-teal);"></i> เพิ่มที่นั่งเพิ่มเติม:
+            </div>
+            <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+              <div style="display: flex; gap: 4px; flex: 1; min-width: 180px;">
+                <input type="text" id="walkInDirectSeatInput" placeholder="พิมพ์เลขที่นั่ง เช่น U28" style="padding: 4px 8px; font-size: 12px; font-family: monospace; background: var(--bg-input); border: 1px solid var(--border-color); border-radius: 4px; color: #fff; flex: 1;">
+                <button type="button" id="btnAddDirectSeatToWalkIn" class="btn btn-secondary" style="padding: 4px 10px; font-size: 11.5px; white-space: nowrap;">
+                  <i class="fa-solid fa-plus"></i> เพิ่ม
+                </button>
+              </div>
+              <div id="walkInAdjacentSuggestions" style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;"></div>
+            </div>
+          </div>
+
+          <div id="walkInParityWarning" style="font-size: 12px; color: #fbbf24; margin-top: 8px; display: flex; align-items: center; gap: 6px;">
+            <i class="fa-solid fa-circle-info"></i> จำนวนที่นั่งต้องตรงกับจำนวนแขก (0/1 ที่นั่ง)
+          </div>
+        </div>
+
+        <!-- Real-time Duplicate Warning Box -->
+        <div id="walkInDuplicateWarning" class="alert-box warning hidden" style="margin-bottom: 14px; padding: 10px 14px; font-size: 12.5px; border-radius: 6px; background: rgba(245, 158, 11, 0.15); border: 1px solid #f59e0b; color: #fde68a;">
+          <div style="font-weight: 600; display: flex; align-items: center; gap: 6px;"><i class="fa-solid fa-triangle-exclamation"></i> ตรวจพบแขกที่มีข้อมูลใกล้เคียงในรอบนี้:</div>
+          <div id="walkInDuplicateList" style="margin-top: 4px;"></div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Name (ชื่อแขก / ผู้ติดต่อ) *</label>
+            <input type="text" id="walkInName" required placeholder="ชื่อแขกที่มาหน้างาน">
+          </div>
+          <div class="form-group">
+            <label>Media (สื่อ / สังกัด / เพจ)</label>
+            <input type="text" id="walkInMedia" placeholder="เช่น Walk-in แขกทั่วไป">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Participant (จำนวนท่าน)</label>
+            <input type="number" id="walkInParticipant" min="1" max="20" value="1" required>
+          </div>
+          <div class="form-group">
+            <label>Tel (เบอร์โทรศัพท์)</label>
+            <input type="tel" id="walkInPhone" placeholder="08x-xxx-xxxx">
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-top: 4px;">
+          <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; background: rgba(255,255,255,0.04); padding: 10px 14px; border-radius: 6px; border: 1px solid var(--border-color);">
+            <input type="checkbox" id="walkInImmediateCheckIn" checked style="width: 18px; height: 18px; accent-color: var(--color-teal); cursor: pointer;">
+            <span style="font-size: 13.5px; font-weight: 500; color: #fff;">
+              <i class="fa-solid fa-circle-check" style="color: var(--color-teal); margin-right: 4px;"></i> เซ็นชื่อเช็คอินทันที (Sign Immediately)
+            </span>
+          </label>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" id="btnCancelWalkIn">ยกเลิก</button>
+          <button type="submit" class="btn btn-primary" id="btnSubmitWalkIn"><i class="fa-solid fa-check"></i> ยืนยัน Walk-in</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: ย้ายที่นั่ง (Move Seat) -->
+  <div class="modal-overlay hidden" id="modalMoveSeat">
+    <div class="modal-box" style="width: 580px; max-width: 95vw;">
+      <div class="modal-header">
+        <h3 class="modal-title"><i class="fa-solid fa-arrows-split-up-and-left" style="color: var(--color-gold);"></i> ย้ายที่นั่งในโรงภาพยนตร์</h3>
+        <button class="btn-close" id="btnCloseMoveSeatModal"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form id="formMoveSeat" class="modal-form">
+        <input type="hidden" id="moveSeatGuestId">
+        
+        <div style="background: rgba(255,255,255,0.03); padding: 12px 16px; border-radius: 8px; border: 1px solid var(--border-color); margin-bottom: 16px;">
+          <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">แขกที่กำลังย้ายที่นั่ง</div>
+          <div id="moveSeatGuestName" style="font-size: 16px; font-weight: 700; color: #fff; margin-top: 2px;">-</div>
+          <div id="moveSeatGuestOrg" style="font-size: 12px; color: var(--color-gold);">-</div>
+          <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">
+            ที่นั่งปัจจุบัน: <span id="moveSeatCurrentSeatsDisplay" style="font-family: monospace; color: var(--color-pink); font-weight: 700;">-</span>
+          </div>
+        </div>
+
+        <!-- Move Scope Selector -->
+        <div style="display: flex; gap: 16px; margin-bottom: 14px; background: rgba(255,255,255,0.04); padding: 10px 14px; border-radius: 6px; border: 1px solid var(--border-color);">
+          <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 13px; color: #fff;">
+            <input type="radio" name="moveSeatScope" id="moveScopeEntire" value="entire" checked style="accent-color: var(--color-gold);">
+            ย้ายทั้งกลุ่ม (Move Group)
+          </label>
+          <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 13px; color: #fff;">
+            <input type="radio" name="moveSeatScope" id="moveScopePartial" value="partial" style="accent-color: var(--color-gold);">
+            เลือกย้ายเฉพาะบางท่าน (Partial)
+          </label>
+        </div>
+
+        <!-- Partial Seats Checklist (shown when partial is selected) -->
+        <div id="moveSeatPartialChecklistContainer" class="hidden" style="margin-bottom: 14px; background: rgba(255,255,255,0.03); border: 1px dashed rgba(245, 158, 11, 0.4); border-radius: 6px; padding: 10px 14px;">
+          <div style="font-size: 11.5px; color: var(--color-gold); margin-bottom: 6px; font-weight: 600;">เลือกที่นั่งในกลุ่มที่ต้องการย้าย:</div>
+          <div id="moveSeatPartialChecklist" style="display: flex; flex-wrap: wrap; gap: 10px;">
+            <!-- Checkboxes rendered via JS -->
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>ย้ายออกจากที่นั่งเดิม (From)</label>
+            <input type="text" id="moveSeatFromInput" readonly style="background: rgba(255,255,255,0.05); color: var(--color-pink); font-weight: 700; font-family: monospace;">
+          </div>
+          <div class="form-group">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+              <label style="margin: 0;">ย้ายไปยังที่นั่งใหม่ (To Target) *</label>
+              <button type="button" id="btnOpenSeatPickerForMove" class="btn btn-secondary" style="padding: 2px 8px; font-size: 11px; border-color: var(--color-gold); color: var(--color-gold);">
+                <i class="fa-solid fa-chair"></i> SeatPicker
+              </button>
+            </div>
+            <input type="text" id="moveSeatToInput" required placeholder="เช่น E10, F12 (คั่นด้วยจุลภาค)" style="font-weight: 700; font-family: monospace; color: var(--color-teal);">
+          </div>
+        </div>
+
+        <!-- Conflict Alert Box -->
+        <div id="moveSeatConflictAlert" class="alert-box warning hidden" style="margin-bottom: 14px; padding: 10px 14px; font-size: 12.5px; border-radius: 6px; background: rgba(239, 68, 68, 0.15); border: 1px solid #ef4444; color: #fca5a5;">
+          <div style="font-weight: 600; display: flex; align-items: center; gap: 6px;"><i class="fa-solid fa-triangle-exclamation"></i> ที่นั่งเป้าหมายถูกจัดให้แขกท่านอื่นแล้ว!</div>
+          <div id="moveSeatConflictText" style="margin-top: 4px;"></div>
+        </div>
+
+        <!-- Smart Alternative Suggestions Container -->
+        <div class="form-group">
+          <label style="display: flex; justify-content: space-between; align-items: center;">
+            <span><i class="fa-solid fa-wand-magic-sparkles" style="color: var(--color-gold);"></i> ที่นั่งว่างใกล้เคียงที่แนะนำ</span>
+            <span style="font-size: 11px; color: var(--text-dim);">คลิกเพื่อเลือกทันที</span>
+          </label>
+          <div id="moveSeatAlternativesList" style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; min-height: 36px;">
+            <!-- Rendered dynamically -->
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" id="btnCancelMoveSeat">ยกเลิก</button>
+          <button type="submit" class="btn btn-primary" id="btnSubmitMoveSeat"><i class="fa-solid fa-check"></i> ยืนยันการย้ายที่นั่ง</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: ตรวจสอบข้อมูลก่อนเช็คอิน (Pre Check-in Validation) -->
+  <div class="modal-overlay hidden" id="modalPreCheckIn">
+    <div class="modal-box" style="width: 520px; max-width: 95vw;">
+      <div class="modal-header">
+        <h3 class="modal-title"><i class="fa-solid fa-clipboard-check" style="color: var(--color-gold);"></i> ตรวจสอบข้อมูลก่อนเช็คอิน</h3>
+        <button class="btn-close" id="btnClosePreCheckInModal"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div style="padding: 20px 24px;">
+        <input type="hidden" id="preCheckInGuestId">
+        
+        <div id="preCheckInSummaryBox" style="background: rgba(255,255,255,0.03); padding: 12px 16px; border-radius: 8px; border: 1px solid var(--border-color); margin-bottom: 16px;">
+          <!-- Populated via JS -->
+        </div>
+
+        <!-- Missing Critical Fields Alert -->
+        <div id="preCheckInCriticalAlert" class="hidden" style="margin-bottom: 14px; padding: 12px 14px; font-size: 13px; border-radius: 6px; background: rgba(239, 68, 68, 0.15); border: 1px solid #ef4444; color: #fca5a5;">
+          <div style="font-weight: 700; display: flex; align-items: center; gap: 6px;">
+            <i class="fa-solid fa-circle-xmark"></i> ข้อมูลสำคัญไม่ครบถ้วน (ต้องระบุก่อนเช็คอิน)
+          </div>
+          <ul id="preCheckInCriticalList" style="margin: 6px 0 0 18px; padding: 0;"></ul>
+          
+          <div id="preCheckInQuickFixInputs" style="margin-top: 12px; display: flex; flex-direction: column; gap: 8px;">
+            <!-- Inputs dynamically rendered if critical field missing -->
+          </div>
+        </div>
+
+        <!-- Missing Warning Fields Alert -->
+        <div id="preCheckInWarningAlert" class="hidden" style="margin-bottom: 14px; padding: 12px 14px; font-size: 13px; border-radius: 6px; background: rgba(245, 158, 11, 0.15); border: 1px solid #f59e0b; color: #fde68a;">
+          <div style="font-weight: 700; display: flex; align-items: center; gap: 6px;">
+            <i class="fa-solid fa-triangle-exclamation"></i> ข้อมูลแนะนำเพิ่มเติม (ไม่บังคับ)
+          </div>
+          <div id="preCheckInWarningText" style="margin-top: 4px;"></div>
+          <div id="preCheckInPhoneInputRow" class="hidden" style="margin-top: 8px;">
+            <label style="font-size: 11.5px; color: var(--text-muted);">เพิ่มเบอร์โทรศัพท์ตอนนี้:</label>
+            <input type="tel" id="preCheckInPhoneInput" class="screening-select" style="width: 100%; max-width: 100%; margin-top: 4px;" placeholder="08x-xxx-xxxx">
+          </div>
+        </div>
+
+        <div class="modal-actions" style="margin-top: 20px; padding: 0; display: flex; gap: 8px; justify-content: flex-end;">
+          <button type="button" class="btn btn-secondary" id="btnCancelPreCheckIn">ยกเลิก</button>
+          <button type="button" class="btn btn-primary" id="btnConfirmPreCheckIn"><i class="fa-solid fa-check"></i> เช็คอินต่อไป</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Partial Check-in (เช็คอินบางส่วน) -->
+  <div class="modal-overlay hidden" id="modalPartialCheckIn">
+    <div class="modal-box" style="width: 480px; max-width: 95vw;">
+      <div class="modal-header">
+        <h3 class="modal-title"><i class="fa-solid fa-users-viewfinder" style="color: var(--color-teal);"></i> บันทึกจำนวนผู้มาถึง (Sign / Partial)</h3>
+        <button class="btn-close" id="btnClosePartialCheckInModal"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div style="padding: 20px 24px;">
+        <input type="hidden" id="partialCheckInGuestId">
+        <div id="partialGuestSummaryBox" style="background: rgba(255,255,255,0.03); padding: 12px 16px; border-radius: 8px; border: 1px solid var(--border-color); margin-bottom: 16px;">
+          <!-- Populated via JS -->
+        </div>
+
+        <div class="form-group">
+          <label style="font-size: 13px; font-weight: 600;">จำนวนคนที่มาถึงหน้างานแล้ว:</label>
+          <div style="display: flex; align-items: center; gap: 12px; margin-top: 8px;">
+            <input type="range" id="partialCountRange" min="0" max="10" value="1" style="flex: 1; accent-color: var(--color-teal);">
+            <span id="partialCountDisplay" style="font-size: 22px; font-weight: 700; color: var(--color-gold); min-width: 40px; text-align: center;">1</span>
+            <span style="font-size: 13px; color: var(--text-muted);" id="partialQuotaTotalDisplay">/ 2 ท่าน</span>
+          </div>
+        </div>
+
+        <div style="margin-top: 14px; padding: 10px 14px; background: rgba(255,255,255,0.03); border-radius: 6px; font-size: 12.5px; color: var(--text-muted);">
+          สถานะที่จะบันทึก: <strong id="partialStatusLabel" style="color: var(--color-teal);">มาบางส่วน</strong>
+        </div>
+
+        <div class="modal-actions" style="margin-top: 20px; padding: 0;">
+          <button type="button" class="btn btn-secondary" id="btnCancelPartialCheckIn">ยกเลิก</button>
+          <button type="button" class="btn btn-primary" id="btnSubmitPartialCheckIn"><i class="fa-solid fa-check"></i> บันทึกสถานะ</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Safe Bulk Delete (ล้างแขกในรอบนี้) -->
+  <div class="modal-overlay hidden" id="modalBulkDelete">
+    <div class="modal-box" style="width: 540px; max-width: 95vw; border: 1px solid rgba(239, 68, 68, 0.4);">
+      <div class="modal-header" style="background: rgba(239, 68, 68, 0.1);">
+        <h3 class="modal-title" style="color: #f87171;"><i class="fa-solid fa-triangle-exclamation"></i> ล้างรายชื่อแขกในรอบนี้อย่างปลอดภัย</h3>
+        <button class="btn-close" id="btnCloseBulkDeleteModal"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div style="padding: 20px 24px;">
+        <p style="font-size: 13.5px; color: #fff; line-height: 1.5; margin-bottom: 12px;">
+          คุณกำลังจะล้างรายชื่อแขกทั้งหมด <strong>เฉพาะในรอบฉายที่เลือกอยู่ปัจจุบัน</strong>
+        </p>
+
+        <div id="bulkDeleteSummaryBox" style="background: rgba(255,255,255,0.04); border: 1px solid var(--border-color); padding: 14px; border-radius: 8px; margin-bottom: 14px; font-size: 13px;">
+          <!-- Populated via JS -->
+        </div>
+
+        <div style="background: rgba(45, 212, 191, 0.1); border: 1px solid rgba(45, 212, 191, 0.25); border-radius: 6px; padding: 10px 14px; margin-bottom: 16px; font-size: 12.5px; color: #a7f3d0;">
+          <i class="fa-solid fa-shield-halved" style="color: var(--color-teal); margin-right: 4px;"></i> 
+          <strong>ระบบความปลอดภัย (Safety Snapshot):</strong> ระบบจะสร้างไฟล์สำรองข้อมูลอัตโนมัติก่อนลบ และมีปุ่ม <code>[ Undo กู้คืนข้อมูล ]</code> ให้กดกู้คืนได้ทันที
+        </div>
+
+        <div class="form-group">
+          <label style="font-size: 13px; color: #fca5a5;">พิมพ์ยืนยันคำว่า <code id="bulkDeleteExpectedCode" style="color: #fff; background: rgba(0,0,0,0.4); padding: 2px 6px; border-radius: 4px;">DELETE</code> เพื่อปลดล็อกปุ่มลบ:</label>
+          <input type="text" id="bulkDeleteConfirmInput" class="screening-select" style="width: 100%; max-width: 100%; margin-top: 6px; font-family: monospace; font-size: 14px; border-color: #ef4444;" placeholder="พิมพ์ DELETE เพื่อยืนยัน">
+        </div>
+
+        <div class="modal-actions" style="margin-top: 20px; padding: 0;">
+          <button type="button" class="btn btn-secondary" id="btnCancelBulkDelete">ยกเลิก</button>
+          <button type="button" class="btn btn-danger" id="btnSubmitBulkDelete" disabled><i class="fa-solid fa-trash"></i> ยืนยันการล้างข้อมูล</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Floating Undo Toast Banner -->
+  <div id="floatingUndoBanner" class="floating-undo-banner hidden">
+    <div class="undo-content">
+      <i class="fa-solid fa-clock-rotate-left"></i>
+      <span id="undoBannerText">ล้างรายชื่อแขกเรียบร้อยแล้ว</span>
+    </div>
+    <div class="undo-actions">
+      <button type="button" class="btn-undo-action" id="btnTriggerUndo">
+        <i class="fa-solid fa-rotate-left"></i> กู้คืนข้อมูล (Undo)
+      </button>
+      <span id="undoTimerCountdown" class="undo-countdown">60s</span>
+      <button type="button" class="btn-close-undo" id="btnCloseUndoBanner"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+  </div>
+
   <!-- Scripts -->
   <script src="js/api.js"></script>
+  <script src="js/seat-picker.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

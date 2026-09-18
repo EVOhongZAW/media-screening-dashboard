@@ -120,7 +120,7 @@ exports.getByGuestType = async (filters) => {
 
 exports.getOverviewCinema = async (screeningId) => {
     let guests = await readData('guests.json');
-    let totalSeats = 60;
+    let totalSeats = 1164;
 
     if (screeningId) {
         const screenings = await readData('screenings.json');
@@ -128,35 +128,33 @@ exports.getOverviewCinema = async (screeningId) => {
         if (sc && sc.capacity) {
             totalSeats = sc.capacity;
         }
-        const matchingGuests = guests.filter(g => g.screeningId === screeningId);
-        if (matchingGuests.length > 0) {
-            guests = matchingGuests;
-        }
+        guests = guests.filter(g => g.screeningId === screeningId);
     }
 
     const totalGuests = guests.length;
-    const accepted = guests.filter(g => g.status === 'accepted').length;
-    const pending = guests.filter(g => g.status === 'pending').length;
-    const declined = guests.filter(g => g.status === 'declined').length;
+    const totalParticipants = guests.reduce((sum, g) => sum + (parseInt(g.participant, 10) || 1), 0);
+    const checkedIn = guests.filter(g => g.attended).length;
+    const pendingSign = Math.max(0, totalGuests - checkedIn);
 
     const bookedSeatsList = guests.flatMap(g => g.seat ? g.seat.split(',').map(s => s.trim()) : []).filter(Boolean);
     const bookedSeats = bookedSeatsList.length;
+    const assignedGuests = guests.filter(g => g.seat && g.seat.trim() !== '').length;
+    const unassignedGuests = totalGuests - assignedGuests;
 
-    const platforms = {
-        youtube: guests.filter(g => g.platforms && g.platforms.youtube).length,
-        tiktok: guests.filter(g => g.platforms && g.platforms.tiktok).length,
-        facebook: guests.filter(g => g.platforms && g.platforms.facebook).length,
-        instagram: guests.filter(g => g.platforms && g.platforms.instagram).length
-    };
+    const checkInRate = totalGuests > 0 ? Math.round((checkedIn / totalGuests) * 100) : 0;
+    const seatOccupancyRate = totalSeats > 0 ? Math.round((bookedSeats / totalSeats) * 100) : 0;
 
     return {
         totalGuests,
-        accepted,
-        pending,
-        declined,
+        totalParticipants,
+        checkedIn,
+        pendingSign,
         bookedSeats,
         totalSeats,
-        platforms
+        assignedGuests,
+        unassignedGuests,
+        checkInRate,
+        seatOccupancyRate
     };
 };
 

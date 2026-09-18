@@ -8,6 +8,7 @@ const branchRoutes = require('./routes/branchRoutes');
 const screeningRoutes = require('./routes/screeningRoutes');
 const guestRoutes = require('./routes/guestRoutes');
 const statsRoutes = require('./routes/statsRoutes');
+const seatRoutes = require('./routes/seatRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -23,6 +24,7 @@ app.use('/api/branches', branchRoutes);
 app.use('/api/screenings', screeningRoutes);
 app.use('/api/guests', guestRoutes);
 app.use('/api/stats', statsRoutes);
+app.use('/api/seats', seatRoutes);
 
 // Error Handler Middleware
 app.use(errorHandler);

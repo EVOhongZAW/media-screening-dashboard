@@ -41,19 +41,22 @@ function renderTable() {
     
     // Calculate attendance if guests data exists or default to 0
     let attendanceStr = row.capacity ? `${Math.round((row.guestsCount || 0) / row.capacity * 100)}%` : '0%';
+    const safeEscape = (str) => window.escapeHtml ? window.escapeHtml(str) : String(str || '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+    const safeTitle = safeEscape(row.title || '-');
+    const safeId = safeEscape(row.id);
 
     tr.innerHTML = `
       <td>${dateThai} ${row.time}</td>
-      <td>${branchName}</td>
-      <td><strong>${row.title}</strong></td>
+      <td>${safeEscape(branchName)}</td>
+      <td><strong>${safeTitle}</strong></td>
       <td><span class="badge badge-media">${mediaTypeThai}</span></td>
       <td>${row.guestsCount || 0} / ${row.capacity}</td>
       <td>${attendanceStr}</td>
       <td><span class="badge ${statusObj.class}">${statusObj.label}</span></td>
       <td>
-        <button class="btn btn-sm btn-secondary btn-icon" onclick="openGuestModal(${row.id})" title="จัดการแขก"><i class="fas fa-users"></i></button>
-        <button class="btn btn-sm btn-primary btn-icon" onclick="editScreening(${row.id})" title="แก้ไข"><i class="fas fa-edit"></i></button>
-        <button class="btn btn-sm btn-danger btn-icon" onclick="deleteScreening(${row.id})" title="ลบ"><i class="fas fa-trash"></i></button>
+        <button class="btn btn-sm btn-secondary btn-icon" onclick="openGuestModal('${safeId}')" title="จัดการแขก"><i class="fas fa-users"></i></button>
+        <button class="btn btn-sm btn-primary btn-icon" onclick="editScreening('${safeId}')" title="แก้ไข"><i class="fas fa-edit"></i></button>
+        <button class="btn btn-sm btn-danger btn-icon" onclick="deleteScreening('${safeId}')" title="ลบ"><i class="fas fa-trash"></i></button>
       </td>
     `;
     tbody.appendChild(tr);

@@ -9,5 +9,6 @@ router.post('/release', seatController.release);
 router.post('/recommend-groups', seatController.recommendGroups);
 router.get('/suggestions', seatController.getSuggestions);
 router.get('/status-all', seatController.getAllStatus);
+router.post('/auto-assign', seatController.autoAssign);
 
 module.exports = router;

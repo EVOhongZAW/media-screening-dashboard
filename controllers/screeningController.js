@@ -1,5 +1,6 @@
 const { readData, writeData } = require('../services/dataService');
 const { v4: uuidv4 } = require('uuid');
+const snapshotService = require('../services/snapshotService');
 
 exports.getAll = async (req, res, next) => {
     try {
@@ -94,6 +95,13 @@ exports.remove = async (req, res, next) => {
         
         if (index === -1) {
             return res.status(404).json({ success: false, message: 'ไม่พบข้อมูลรอบฉาย' });
+        }
+
+        // Auto-backup guests of this screening to snapshot before deleting
+        try {
+            await snapshotService.createSnapshot(req.params.id, 'screening_delete_backup');
+        } catch (snapErr) {
+            console.warn('Snapshot backup before screening deletion skipped or failed:', snapErr.message);
         }
 
         screenings.splice(index, 1);

@@ -10,17 +10,5 @@
     "capacity": 1164,
     "status": "scheduled",
     "notes": ""
-  },
-  {
-    "id": "scr-5cc1348d",
-    "title": "Doraemon 2",
-    "branchId": "branch-04",
-    "theater": "Pavalai (Pavalai Royal Grand Theatre)",
-    "date": "2026-09-18",
-    "time": "19:00",
-    "mediaType": "movie",
-    "capacity": 1164,
-    "status": "scheduled",
-    "notes": ""
   }
 ]

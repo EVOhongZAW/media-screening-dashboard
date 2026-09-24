@@ -1,6 +1,99 @@
 const { readData, writeData } = require('./dataService');
 const { logActivity } = require('./auditService');
 
+const DEFAULT_CAPACITY = 1164;
+let VALID_SEATS_SET = null;
+
+/**
+ * Get Set of all valid seat IDs in Siam Pavalai layout
+ */
+function getValidSeatsSet() {
+  if (VALID_SEATS_SET) return VALID_SEATS_SET;
+  try {
+    const layout = require('../data/pavalai_layout.json');
+    VALID_SEATS_SET = new Set();
+    if (layout && layout.rows) {
+      layout.rows.forEach(r => {
+        if (r.seats) {
+          r.seats.forEach(s => VALID_SEATS_SET.add(s.id.toUpperCase()));
+        }
+      });
+    }
+  } catch (err) {
+    console.warn('Could not load pavalai_layout.json:', err.message);
+    VALID_SEATS_SET = new Set();
+  }
+  return VALID_SEATS_SET;
+}
+
+/**
+ * Validate whether a seat ID exists in the theater layout
+ */
+function isValidSeatId(seatId) {
+  if (!seatId || typeof seatId !== 'string') return false;
+  const valid = getValidSeatsSet();
+  const normalized = seatId.trim().toUpperCase();
+  if (valid.size > 0) {
+    return valid.has(normalized);
+  }
+  return /^[A-Z]{1,2}\d{1,2}$/.test(normalized);
+}
+
+/**
+ * Expand seat strings, including comma-separated and ranges (e.g. "B16-B18", "E10-13", "AA1-AA4")
+ */
+function expandSeatRanges(seatStr) {
+  if (!seatStr || typeof seatStr !== 'string') return [];
+  const clean = seatStr.trim();
+  if (!clean) return [];
+
+  const tokens = clean.split(/[,;/+]+/).map(t => t.trim().toUpperCase()).filter(Boolean);
+  const result = [];
+
+  for (const token of tokens) {
+    const rangeMatch = token.match(/^([A-Z]{1,2})\s*(\d+)\s*[-–—]\s*([A-Z]{1,2})?\s*(\d+)$/i);
+    if (rangeMatch) {
+      const row1 = rangeMatch[1].toUpperCase();
+      const startNum = parseInt(rangeMatch[2], 10);
+      const row2 = (rangeMatch[3] || row1).toUpperCase();
+      const endNum = parseInt(rangeMatch[4], 10);
+
+      if (row1 === row2 && !isNaN(startNum) && !isNaN(endNum)) {
+        const step = startNum <= endNum ? 1 : -1;
+        for (let n = startNum; startNum <= endNum ? n <= endNum : n >= endNum; n += step) {
+          result.push(`${row1}${n}`);
+        }
+        continue;
+      }
+    }
+    result.push(token);
+  }
+
+  return result;
+}
+
+/**
+ * Check if adding new participants exceeds theater capacity
+ */
+async function checkCapacity(screeningId, newParticipantsCount = 0) {
+  const screenings = await readData('screenings.json');
+  const sc = screenings.find(s => s.id === screeningId);
+  const capacity = (sc && sc.capacity) ? sc.capacity : DEFAULT_CAPACITY;
+
+  const guests = await readData('guests.json');
+  const screeningGuests = guests.filter(g => g.screeningId === screeningId);
+  const currentTotal = screeningGuests.reduce((sum, g) => sum + (parseInt(g.participant, 10) || 1), 0);
+
+  const exceeded = (currentTotal + newParticipantsCount) > capacity;
+  return {
+    exceeded,
+    currentTotal,
+    capacity,
+    newParticipantsCount,
+    availableQuota: Math.max(0, capacity - currentTotal)
+  };
+}
+
 /**
  * Get map of all booked seats for a screening
  */
@@ -11,7 +104,7 @@ async function getScreeningSeatsMap(screeningId) {
 
   for (const g of screeningGuests) {
     if (!g.seat) continue;
-    const seats = g.seat.split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
+    const seats = expandSeatRanges(g.seat);
     for (const seatId of seats) {
       map[seatId] = g;
     }
@@ -24,13 +117,27 @@ async function getScreeningSeatsMap(screeningId) {
  * Check if a seat is available in a screening
  */
 async function checkSeatAvailability(screeningId, seatId, excludeGuestId = null) {
-  const { map } = await getScreeningSeatsMap(screeningId);
   const normalized = seatId.trim().toUpperCase();
+
+  // 1. Verify seat exists in theater layout
+  if (!isValidSeatId(normalized)) {
+    return {
+      available: false,
+      reason: 'INVALID_SEAT',
+      message: `ที่นั่ง ${normalized} ไม่มีอยู่ในผังโรงภาพยนตร์ (ความจุสยามภาวลัย 1,164 ที่นั่ง)`,
+      occupant: null
+    };
+  }
+
+  // 2. Check current occupancy
+  const { map } = await getScreeningSeatsMap(screeningId);
   const occupant = map[normalized];
 
   if (occupant && occupant.id !== excludeGuestId) {
     return {
       available: false,
+      reason: 'OCCUPIED',
+      message: `ที่นั่ง ${normalized} ถูกจองแล้วโดย ${occupant.name} (${occupant.organization})`,
       occupant: {
         id: occupant.id,
         name: occupant.name,
@@ -115,8 +222,20 @@ async function assignSeatsBulk(screeningId, guestId, seatIds) {
     }
   }
 
+  const existingCheckedMap = new Map();
+  if (Array.isArray(guest.seats)) {
+    guest.seats.forEach(st => {
+      if (typeof st === 'object' && st !== null) {
+        existingCheckedMap.set(st.code.toUpperCase(), !!st.checkedIn);
+      }
+    });
+  }
+
   guest.seat = currentSeats.join(', ');
-  guest.seats = currentSeats;
+  guest.seats = currentSeats.map(code => ({
+    code,
+    checkedIn: existingCheckedMap.has(code) ? existingCheckedMap.get(code) : !!guest.attended
+  }));
   await writeData('guests.json', allGuests);
 
   await logActivity({
@@ -211,8 +330,19 @@ async function movePartialSeats(screeningId, guestId, moves) {
     }
   }
 
+  let seatsObjs = Array.isArray(guest.seats) && guest.seats.length > 0 && typeof guest.seats[0] === 'object'
+    ? guest.seats.map(s => ({ ...s }))
+    : currentSeats.map(c => ({ code: c, checkedIn: attendedSeats.includes(c) }));
+
+  for (const m of normalizedMoves) {
+    const sObj = seatsObjs.find(s => s.code === m.from);
+    if (sObj) {
+      sObj.code = m.to;
+    }
+  }
+
   guest.seat = currentSeats.join(', ');
-  guest.seats = currentSeats;
+  guest.seats = seatsObjs;
   guest.attendedSeats = attendedSeats;
   await writeData('guests.json', allGuests);
 
@@ -242,8 +372,12 @@ async function releaseSeat(screeningId, guestId, seatId) {
   let currentSeats = guest.seat ? guest.seat.split(',').map(s => s.trim().toUpperCase()).filter(Boolean) : [];
   currentSeats = currentSeats.filter(s => s !== normalized);
 
+  const updatedSeatsObjs = (Array.isArray(guest.seats) && guest.seats.length > 0 && typeof guest.seats[0] === 'object')
+    ? guest.seats.filter(s => s.code.toUpperCase() !== normalized)
+    : currentSeats.map(code => ({ code, checkedIn: (guest.attendedSeats || []).includes(code) }));
+
   guest.seat = currentSeats.length > 0 ? currentSeats.join(', ') : null;
-  guest.seats = currentSeats;
+  guest.seats = updatedSeatsObjs;
   if (Array.isArray(guest.attendedSeats)) {
     guest.attendedSeats = guest.attendedSeats.filter(s => s !== normalized);
   }
@@ -515,19 +649,37 @@ async function getAllSeatsStatus(screeningId) {
       let occupantSummary = null;
 
       if (occupant) {
-        if (occupant.attended) {
+        let isSeatCheckedIn = false;
+        if (Array.isArray(occupant.seats)) {
+          const seatObj = occupant.seats.find(st => (typeof st === 'object' ? st.code : st).toUpperCase() === s.id.toUpperCase());
+          if (seatObj && typeof seatObj === 'object') {
+            isSeatCheckedIn = !!seatObj.checkedIn;
+          } else {
+            isSeatCheckedIn = Array.isArray(occupant.attendedSeats)
+              ? occupant.attendedSeats.map(x => x.toUpperCase()).includes(s.id.toUpperCase())
+              : !!occupant.attended;
+          }
+        } else {
+          isSeatCheckedIn = Array.isArray(occupant.attendedSeats)
+            ? occupant.attendedSeats.map(x => x.toUpperCase()).includes(s.id.toUpperCase())
+            : !!occupant.attended;
+        }
+
+        if (isSeatCheckedIn) {
           status = 'attended';
           attendedCount++;
         } else {
           status = 'assigned';
           assignedCount++;
         }
+
         occupantSummary = {
           id: occupant.id,
           name: occupant.name,
           organization: occupant.organization,
           phone: occupant.phone,
           attended: occupant.attended,
+          seatCheckedIn: isSeatCheckedIn,
           attendedCount: occupant.attendedCount || 0
         };
       } else {
@@ -559,6 +711,104 @@ async function getAllSeatsStatus(screeningId) {
   };
 }
 
+async function autoAssignUnseatedGuests(screeningId, guestIds = null) {
+  if (!screeningId) throw new Error('กรุณาระบุ screeningId');
+
+  const snapshotService = require('./snapshotService');
+  const auditService = require('./auditService');
+
+  // Create snapshot before auto-assigning for safe rollback
+  await snapshotService.createSnapshot(screeningId, 'auto_assign_batch');
+
+  const allGuests = await readData('guests.json');
+  let unseated = allGuests.filter(g => g.screeningId === screeningId && (!g.seat || (g.seats && g.seats.length === 0)));
+
+  if (Array.isArray(guestIds) && guestIds.length > 0) {
+    unseated = unseated.filter(g => guestIds.includes(g.id));
+  }
+
+  if (unseated.length === 0) {
+    return {
+      success: true,
+      assignedCount: 0,
+      totalSeats: 0,
+      unseatedRemaining: 0,
+      message: 'ไม่มีแขกที่ยังไม่จัดที่นั่งในรอบนี้'
+    };
+  }
+
+  const { map } = await getScreeningSeatsMap(screeningId);
+  const layout = await readData('pavalai_layout.json');
+
+  const occupiedSet = new Set(Object.keys(map).map(s => s.toUpperCase()));
+  let assignedCount = 0;
+  let totalSeatsAssigned = 0;
+
+  // Prioritize larger groups first so they get contiguous rows
+  unseated.sort((a, b) => (b.participant || 1) - (a.participant || 1));
+
+  for (const guest of unseated) {
+    const quota = guest.participant || 1;
+    let allocatedSeats = null;
+
+    // First attempt: contiguous block in a single row
+    for (const row of layout.rows) {
+      const seats = row.seats || [];
+      if (seats.length < quota) continue;
+
+      for (let i = 0; i <= seats.length - quota; i++) {
+        const window = seats.slice(i, i + quota);
+        if (window.every(s => !occupiedSet.has(s.id.toUpperCase()))) {
+          allocatedSeats = window.map(s => s.id);
+          break;
+        }
+      }
+      if (allocatedSeats) break;
+    }
+
+    // Second attempt: pick nearest available seats across rows
+    if (!allocatedSeats) {
+      const freeSeats = [];
+      for (const row of layout.rows) {
+        for (const s of row.seats || []) {
+          if (!occupiedSet.has(s.id.toUpperCase())) {
+            freeSeats.push(s.id);
+            if (freeSeats.length === quota) break;
+          }
+        }
+        if (freeSeats.length === quota) break;
+      }
+      if (freeSeats.length === quota) {
+        allocatedSeats = freeSeats;
+      }
+    }
+
+    if (allocatedSeats && allocatedSeats.length === quota) {
+      allocatedSeats.forEach(s => occupiedSet.add(s.toUpperCase()));
+      guest.seats = allocatedSeats.map(code => ({ code, checkedIn: !!guest.attended }));
+      guest.seat = allocatedSeats.join(', ');
+      assignedCount++;
+      totalSeatsAssigned += quota;
+    }
+  }
+
+  await writeData('guests.json', allGuests);
+
+  await auditService.logActivity({
+    action: 'AUTO_ASSIGN_SEATS',
+    screeningId,
+    details: { assignedCount, totalSeatsAssigned, totalRequested: unseated.length }
+  });
+
+  return {
+    success: true,
+    assignedCount,
+    totalSeats: totalSeatsAssigned,
+    unseatedRemaining: unseated.length - assignedCount,
+    message: `จัดที่นั่งอัตโนมัติสำเร็จ ${assignedCount} ท่าน (${totalSeatsAssigned} ที่นั่ง)`
+  };
+}
+
 module.exports = {
   getScreeningSeatsMap,
   checkSeatAvailability,
@@ -569,5 +819,10 @@ module.exports = {
   releaseSeat,
   findAlternativeSeats,
   findGroupRecommendations,
-  getAllSeatsStatus
+  getAllSeatsStatus,
+  isValidSeatId,
+  expandSeatRanges,
+  checkCapacity,
+  getValidSeatsSet,
+  autoAssignUnseatedGuests
 };

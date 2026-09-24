@@ -45,6 +45,15 @@ async function runFullVerification() {
 
   const screeningId = 'scr-01';
 
+  // Ensure clean state before running tests
+  const existingGuestsRes = await request('GET', `/api/guests?screeningId=${screeningId}`);
+  if (existingGuestsRes.body?.data) {
+    const leftoverWorkpoint = existingGuestsRes.body.data.find(g => g.name && g.name.includes('Workpoint'));
+    if (leftoverWorkpoint) {
+      await request('DELETE', `/api/guests/${leftoverWorkpoint.id}`);
+    }
+  }
+
   // 1. All Seats Status & Topology Check
   console.log('--- Suite 1: Full Inventory & Topology ---');
   const res1 = await request('GET', `/api/seats/status-all?screeningId=${screeningId}`);

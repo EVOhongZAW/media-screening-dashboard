@@ -170,26 +170,23 @@ npm install
 ### 4. เปิดใช้งานผ่านเบราว์เซอร์
 เปิดเบราว์เซอร์และเข้าไปที่:
 ```text
-http://localhost:3000
+http://localhost:3000/media-screening-dashboard
 ```
+*(หากเข้าผ่าน `http://localhost:3000/` ระบบจะ Redirect ไปยัง `/media-screening-dashboard` ให้อัตโนมัติ)*
 
 ---
 
 ## 🧪 การทดสอบระบบอัตโนมัติ (Automated Testing)
 
-โปรเจกต์มีชุดทดสอบอัตโนมัติระดับ Senior Full-Stack ครอบคลุม 24 รายการทดสอบ:
+โปรเจกต์มีชุดทดสอบอัตโนมัติระดับ Senior Full-Stack ครอบคลุม 80 รายการทดสอบ (100% Pass Rate):
 ```bash
 npm test
 ```
 
-**ผลการทดสอบ (24/24 Test Cases Passed - 100%):**
-- **Suite 1**: Full Inventory & Topology (ตรวจสอบความถูกต้องของผัง 1,164 ที่นั่ง)
-- **Suite 2**: Heuristic Group Recommendations (ทดสอบอัลกอริทึมแนะนำที่นั่งติดกัน 4 ที่)
-- **Suite 3**: Walk-in Group Parity Validation (ทดสอบการบล็อก Parity Mismatch และการสร้าง Walk-in)
-- **Suite 4**: Non-Destructive 409 Conflict Recovery (ทดสอบการรักษาที่นั่งเดิมเมื่อเกิด Conflict)
-- **Suite 5**: Partial Move within Group (ทดสอบการย้ายที่นั่งเฉพาะบุคคลและการ Release เก้าอี้เดิม)
-- **Suite 6**: Full Group Move (ทดสอบการย้ายทั้งกลุ่ม)
-- **Suite 7**: Clean-up & Data Integrity (ทดสอบการกู้คืนข้อมูล)
+**ผลการทดสอบ (80/80 Test Cases Passed - 100%):**
+- **Engine Verification (`verify_group_seats.js`)**: 24/24 ผ่าน (Topology, Heuristic Scoring, Walk-in Parity, Conflict Recovery, Seat Moves)
+- **Production Hardening (`verify_hardening.js`)**: 12/12 ผ่าน (Mutex Atomic Concurrency, Path Traversal Rejection, Layout Topology, Pre-validation, Idempotent Check-in)
+- **UI Spec & Route Verification (`verify_ui_matching.js`)**: 44/44 ผ่าน (Header/Subtitle, Actions, Tabs, Filter Chips, Legend, Twin Symmetrical Row Badges, `/media-screening-dashboard` Base URL)
 
 ---
 

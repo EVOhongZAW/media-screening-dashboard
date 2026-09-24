@@ -6,10 +6,21 @@ const { readData, writeData } = require('./dataService');
 const SNAPSHOTS_DIR = path.join(__dirname, '../data/snapshots');
 
 /**
+ * Sanitize identifier to prevent Path Traversal attacks
+ */
+function sanitizeId(id, fieldName = 'ID') {
+  if (!id || typeof id !== 'string' || !/^[a-zA-Z0-9_-]+$/.test(id.trim())) {
+    throw new Error(`รูปแบบ ${fieldName} ไม่ถูกต้อง (อนุญาตเฉพาะตัวอักษร ตัวเลข และ _ - เท่านั้น)`);
+  }
+  return id.trim();
+}
+
+/**
  * Ensure snapshots directory exists
  */
 async function ensureSnapshotsDir(screeningId) {
-  const dir = path.join(SNAPSHOTS_DIR, screeningId);
+  const safeId = sanitizeId(screeningId, 'Screening ID');
+  const dir = path.join(SNAPSHOTS_DIR, safeId);
   await fs.mkdir(dir, { recursive: true });
   return dir;
 }
@@ -18,13 +29,14 @@ async function ensureSnapshotsDir(screeningId) {
  * Create a snapshot of all guests in a screening
  */
 async function createSnapshot(screeningId, reason = 'bulk_delete') {
+  const safeScreeningId = sanitizeId(screeningId, 'Screening ID');
   const allGuests = await readData('guests.json');
-  const targetGuests = allGuests.filter(g => g.screeningId === screeningId);
+  const targetGuests = allGuests.filter(g => g.screeningId === safeScreeningId);
 
   const snapshotId = `snp-${Date.now()}-${uuidv4().substring(0, 6)}`;
   const snapshotData = {
     id: snapshotId,
-    screeningId,
+    screeningId: safeScreeningId,
     timestamp: new Date().toISOString(),
     reason,
     guestCount: targetGuests.length,
@@ -47,18 +59,20 @@ async function createSnapshot(screeningId, reason = 'bulk_delete') {
  * Restore guests from a snapshot
  */
 async function restoreSnapshot(screeningId, snapshotId) {
-  const dir = await ensureSnapshotsDir(screeningId);
-  const filePath = path.join(dir, `${snapshotId}.json`);
+  const safeScreeningId = sanitizeId(screeningId, 'Screening ID');
+  const safeSnapshotId = sanitizeId(snapshotId, 'Snapshot ID');
+  const dir = await ensureSnapshotsDir(safeScreeningId);
+  const filePath = path.join(dir, `${safeSnapshotId}.json`);
   
   let raw;
   try {
     raw = await fs.readFile(filePath, 'utf8');
   } catch (err) {
-    throw new Error(`ไม่พบ Snapshot ID: ${snapshotId}`);
+    throw new Error(`ไม่พบ Snapshot ID: ${safeSnapshotId}`);
   }
 
   const snapshot = JSON.parse(raw);
-  if (snapshot.screeningId !== screeningId) {
+  if (snapshot.screeningId !== safeScreeningId) {
     throw new Error('รอบฉายของ Snapshot ไม่ตรงกับรอบฉายปัจจุบัน');
   }
 

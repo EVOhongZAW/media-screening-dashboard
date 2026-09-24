@@ -14,9 +14,22 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// Serve static files if needed
+// Redirect root to /media-screening-dashboard (preserving query params)
+app.get('/', (req, res) => {
+    const query = req.url.includes('?') ? req.url.substring(req.url.indexOf('?')) : '';
+    res.redirect(302, `/media-screening-dashboard${query}`);
+});
+
+// Explicit route to serve dashboard at /media-screening-dashboard
+app.get('/media-screening-dashboard', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// Serve static files both at /media-screening-dashboard and root
+app.use('/media-screening-dashboard', express.static(path.join(__dirname, 'public')));
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Routes

@@ -11,8 +11,9 @@ router.post('/walk-in', guestController.walkIn);
 router.post('/import', guestController.importBatch);
 router.post('/bulk-delete', guestController.bulkDelete);
 router.post('/restore-snapshot', guestController.restoreSnapshot);
+router.get('/:id', guestController.getById);
 router.post('/:id/check-in', guestController.checkIn);
-
+router.put('/:id/seats/:seatCode/checkin', guestController.checkInSeat);
 router.put('/:id', guestController.update);
 router.delete('/:id', guestController.remove);
 

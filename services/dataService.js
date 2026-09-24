@@ -3,6 +3,9 @@ const path = require('path');
 
 const dataDir = path.join(__dirname, '../data');
 
+// Map of filename -> Promise queue for serializing writes per file
+const fileQueues = new Map();
+
 async function readData(filename) {
     try {
         const filePath = path.join(dataDir, filename);
@@ -16,15 +19,43 @@ async function readData(filename) {
     }
 }
 
+/**
+ * Thread-safe atomic write to JSON file with per-file sequential queue
+ */
 async function writeData(filename, data) {
-    try {
-        const filePath = path.join(dataDir, filename);
-        // Ensure data directory exists
-        await fs.mkdir(dataDir, { recursive: true });
-        await fs.writeFile(filePath, JSON.stringify(data, null, 2), 'utf8');
-    } catch (error) {
-        throw error;
-    }
+    const previousPromise = fileQueues.get(filename) || Promise.resolve();
+
+    const currentPromise = previousPromise
+        .catch(() => {}) // Don't let previous failures break subsequent writes
+        .then(async () => {
+            const filePath = path.join(dataDir, filename);
+            const tempPath = `${filePath}.${Date.now()}.${Math.random().toString(36).slice(2)}.tmp`;
+            
+            await fs.mkdir(dataDir, { recursive: true });
+            // Write to temporary file first
+            await fs.writeFile(tempPath, JSON.stringify(data, null, 2), 'utf8');
+            
+            // Atomic rename to replace destination file
+            // On Windows, handle occasional transient EPERM/EBUSY locks with retries
+            let retries = 5;
+            while (retries > 0) {
+                try {
+                    await fs.rename(tempPath, filePath);
+                    break;
+                } catch (renameErr) {
+                    if ((renameErr.code === 'EPERM' || renameErr.code === 'EBUSY') && retries > 1) {
+                        retries--;
+                        await new Promise(r => setTimeout(r, 20));
+                    } else {
+                        try { await fs.unlink(tempPath); } catch (_) {}
+                        throw renameErr;
+                    }
+                }
+            }
+        });
+
+    fileQueues.set(filename, currentPromise);
+    return currentPromise;
 }
 
 module.exports = {

@@ -18,8 +18,15 @@ const state = {
   filters: {
     search: '',
     checkIn: 'all',
-    seatStatus: 'all'
-  }
+    seatStatus: 'all',
+    pic: 'all',
+    tab: 'all'
+  },
+  sortFollower: null,
+  guestPage: 1,
+  guestPageSize: 25,
+  seatColors: {},
+  activeCategoryFilter: 'all'
 };
 
 // Seat layout definition: Fallback rows up to L
@@ -39,12 +46,6 @@ function getSeatZoneLabel(zone) {
   if (zone === 'balcony') return 'Royal Balcony';
   return 'Standard Hall';
 }
-
-function isSweetSpotSeat(row, col) {
-  // Acoustic and visual sweet spot in Pavalai (Rows G..L, center columns 10-25)
-  return ['G', 'H', 'I', 'J', 'K', 'L'].includes(row) && col >= 10 && col <= 25;
-}
-
 
 // Toast notification helper
 function showToast(message, type = 'success') {
@@ -82,6 +83,12 @@ function setupNavigation() {
       switchView(view);
     });
   });
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const requestedView = urlParams.get('view') || (window.location.hash ? window.location.hash.replace('#', '') : null);
+  if (requestedView && ['overview', 'seats', 'guests'].includes(requestedView)) {
+    switchView(requestedView);
+  }
 }
 
 function switchView(viewName) {
@@ -513,6 +520,7 @@ function setupEventListeners() {
   if (searchInput) {
     searchInput.addEventListener('input', (e) => {
       state.filters.search = e.target.value;
+      state.guestPage = 1;
       renderGuestTable();
     });
   }
@@ -522,6 +530,7 @@ function setupEventListeners() {
   if (filterCheckIn) {
     filterCheckIn.addEventListener('change', (e) => {
       state.filters.checkIn = e.target.value;
+      state.guestPage = 1;
       renderGuestTable();
     });
   }
@@ -531,7 +540,77 @@ function setupEventListeners() {
   if (filterSeatStatus) {
     filterSeatStatus.addEventListener('change', (e) => {
       state.filters.seatStatus = e.target.value;
+      state.guestPage = 1;
       renderGuestTable();
+    });
+  }
+
+  // Filter PIC
+  const filterPic = document.getElementById('filterPic');
+  if (filterPic) {
+    filterPic.addEventListener('change', (e) => {
+      state.filters.pic = e.target.value;
+      state.guestPage = 1;
+      renderGuestTable();
+    });
+  }
+
+  // Guest Quick Stat Tabs
+  const statTabs = document.getElementById('guestStatTabs');
+  if (statTabs) {
+    statTabs.addEventListener('click', (e) => {
+      const chip = e.target.closest('.guest-tab-chip');
+      if (!chip) return;
+      statTabs.querySelectorAll('.guest-tab-chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      state.filters.tab = chip.dataset.tabFilter || 'all';
+      state.guestPage = 1;
+      renderGuestTable();
+    });
+  }
+
+  // Guest Page Size Select
+  const pageSizeSelect = document.getElementById('guestPageSizeSelect');
+  if (pageSizeSelect) {
+    pageSizeSelect.addEventListener('change', (e) => {
+      state.guestPageSize = e.target.value === 'all' ? 'all' : (parseInt(e.target.value, 10) || 25);
+      state.guestPage = 1;
+      renderGuestTable();
+    });
+  }
+
+  // Auto Assign Contiguous Seats to all unassigned guests
+  const btnAutoAssign = document.getElementById('btnAutoAssignSeats');
+  if (btnAutoAssign) {
+    btnAutoAssign.addEventListener('click', async () => {
+      const unseated = state.guests.filter(g => !g.seat || g.seat.trim() === '');
+      if (unseated.length === 0) {
+        showToast('ไม่มีแขกที่ยังไม่จัดที่นั่งในรอบนี้', 'info');
+        return;
+      }
+      const totalSeatsNeeded = unseated.reduce((sum, g) => sum + (g.participant || 1), 0);
+      if (!confirm(`ระบบจะค้นหาและจัดสรรที่นั่งว่างติดกันให้แขกที่ยังไม่มีที่นั่งทั้งหมด ${unseated.length} ท่าน (${totalSeatsNeeded} ที่นั่ง) โดยอัตโนมัติ\n\nต้องการดำเนินการต่อหรือไม่?`)) {
+        return;
+      }
+
+      btnAutoAssign.disabled = true;
+      const originalText = btnAutoAssign.innerHTML;
+      btnAutoAssign.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> กำลังจัดที่นั่ง...';
+
+      try {
+        const res = await API.autoAssignSeats(state.activeScreeningId);
+        if (res.success) {
+          showToast(`⚡ ${res.message || 'จัดที่นั่งอัตโนมัติเรียบร้อยแล้ว'}`);
+          await refreshData();
+        } else {
+          showToast(res.message || 'เกิดข้อผิดพลาดในการจัดที่นั่ง', 'error');
+        }
+      } catch (err) {
+        showToast('เกิดข้อผิดพลาด: ' + err.message, 'error');
+      } finally {
+        btnAutoAssign.disabled = false;
+        btnAutoAssign.innerHTML = originalText;
+      }
     });
   }
 
@@ -566,6 +645,19 @@ function setupEventListeners() {
 
   setupAddGuestHelpers();
 
+  // Walk-in Buttons (Header in Seating Map & Toolbar in Guest List)
+  const openWalkInButtons = document.querySelectorAll(
+    '#btnOpenGroupWalkInFromSeats, #btnOpenGroupWalkInFromGuests, .btn-open-walkin, .btn-header-walkin'
+  );
+  openWalkInButtons.forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (typeof window.openWalkInModal === 'function') {
+        window.openWalkInModal();
+      }
+    });
+  });
+
   // Seat View Filter Buttons
   document.querySelectorAll('.seat-filter-btn').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -594,6 +686,12 @@ function setupEventListeners() {
 
   // Setup Operations Suite Modals (Walk-in, Move Seat, Pre-checkin, Partial Check-in, Bulk Delete & Undo)
   setupOperationsModals();
+
+  // Setup Follower Column Sort
+  setupFollowerSort();
+
+  // Setup Seat Category Color Coding Legend Filter
+  setupCategoryLegend();
 }
 
 function setupSeatGridDelegation() {
@@ -601,8 +699,27 @@ function setupSeatGridDelegation() {
   if (!container) return;
 
   container.addEventListener('mouseover', (e) => {
+    // 1. Check if hovering over a row label badge
+    const rowLabel = e.target.closest('.row-label');
+    if (rowLabel) {
+      const parentRow = rowLabel.closest('.pavalai-row, .seat-row');
+      if (parentRow) {
+        parentRow.classList.add('row-hovered');
+        parentRow.classList.remove('row-active');
+      }
+      return;
+    }
+
+    // 2. Check if hovering over a cinema seat
     const seatBtn = e.target.closest('.cinema-seat');
     if (!seatBtn) return;
+
+    // Crosshair row highlighting: highlight parent row & twin left/right badges
+    const parentRow = seatBtn.closest('.pavalai-row, .seat-row');
+    if (parentRow) {
+      parentRow.classList.add('row-active');
+      parentRow.classList.remove('row-hovered');
+    }
     
     const seatId = seatBtn.dataset.seatId;
     
@@ -615,7 +732,6 @@ function setupSeatGridDelegation() {
     
     let seatData = null;
     let zone = seatBtn.dataset.zone || '';
-    let isSweet = seatBtn.dataset.isSweet === 'true';
     
     if (state.pavalaiLayout && seatBtn.dataset.rowLabel) {
       seatData = {
@@ -626,32 +742,77 @@ function setupSeatGridDelegation() {
       if (!zone) zone = getSeatZone(seatData.rowLabel, '');
     } else {
       const row = seatId.charAt(0);
-      const col = parseInt(seatId.slice(1), 10);
       zone = getSeatZone(row);
-      isSweet = isSweetSpotSeat(row, col);
     }
     
-    showSeatHoverTooltip(e, seatId, guest, zone, isSweet, seatData);
+    showSeatHoverTooltip(e, seatId, guest, zone, seatData);
   });
 
   let hoverRaf = null;
   container.addEventListener('mousemove', (e) => {
+    const seatBtn = e.target.closest('.cinema-seat');
+    if (!seatBtn) return;
+    const card = document.getElementById('seatHoverCard');
+    // Performance: Skip recalculation on mousemove if already positioned for this seat
+    if (card && card._currentSeatId === seatBtn.dataset.seatId) return;
+
     if (hoverRaf) return;
     hoverRaf = requestAnimationFrame(() => {
       hoverRaf = null;
-      const seatBtn = e.target.closest('.cinema-seat');
-      if (!seatBtn) return;
-      updateSeatHoverTooltipPosition(e);
+      updateSeatHoverTooltipPosition(seatBtn);
     });
   });
 
   container.addEventListener('mouseout', (e) => {
+    const relatedRow = e.relatedTarget ? e.relatedTarget.closest('.pavalai-row, .seat-row') : null;
+    const parentRow = (e.target.closest('.cinema-seat') || e.target.closest('.row-label'))?.closest('.pavalai-row, .seat-row');
+    if (parentRow && parentRow !== relatedRow) {
+      parentRow.classList.remove('row-active', 'row-hovered');
+    }
+
     const seatBtn = e.target.closest('.cinema-seat');
     if (!seatBtn) return;
+
+    // Do not hide if moving cursor into the tooltip card itself
+    const card = document.getElementById('seatHoverCard');
+    if (e.relatedTarget && (e.relatedTarget === card || (card && card.contains(e.relatedTarget)))) {
+      return;
+    }
+
     hideSeatHoverTooltip();
   });
 
   container.addEventListener('click', (e) => {
+    // 1. Handle clicking on row label to view row stats summary
+    const rowLabel = e.target.closest('.row-label');
+    if (rowLabel) {
+      const rowName = rowLabel.dataset.row;
+      if (rowName) {
+        let totalInRow = 0;
+        let assignedInRow = 0;
+        const seatsMap = getSeatsMap();
+        
+        if (state.pavalaiLayout && state.pavalaiLayout.rows) {
+          const rowObj = state.pavalaiLayout.rows.find(r => r.label === rowName);
+          if (rowObj && rowObj.seats) {
+            totalInRow = rowObj.seats.length;
+            rowObj.seats.forEach(s => {
+              if (seatsMap[s.id]) assignedInRow++;
+            });
+          }
+        } else {
+          for (let c = 1; c <= 10; c++) {
+            totalInRow++;
+            if (seatsMap[`${rowName}${c}`]) assignedInRow++;
+          }
+        }
+        const availableInRow = totalInRow - assignedInRow;
+        showToast(`📍 แถว ${rowName}: ทั้งหมด ${totalInRow} ที่นั่ง · ว่าง ${availableInRow} · จัดแล้ว ${assignedInRow} ที่`);
+      }
+      return;
+    }
+
+    // 2. Handle clicking on seat
     const seatBtn = e.target.closest('.cinema-seat');
     if (!seatBtn) return;
 
@@ -665,9 +826,17 @@ function setupSeatGridDelegation() {
     
     state.selectedSeat = seatId;
     seatBtn.classList.add('selected');
+    hideSeatHoverTooltip(true);
     
     showSeatDetails(seatId);
   });
+
+  // Dismiss tooltip immediately when scrolling any container or window (optimal UX)
+  const handleSeatScroll = () => {
+    hideSeatHoverTooltip(true);
+  };
+  window.addEventListener('scroll', handleSeatScroll, { passive: true, capture: true });
+  container.addEventListener('scroll', handleSeatScroll, { passive: true });
 }
 
 // ================= CSV / EXCEL IMPORT & SEAT RANGE EXPANSION =================
@@ -682,7 +851,7 @@ function expandSeatRanges(seatStr) {
 
   for (const token of tokens) {
     // Pattern 1: AA11-AA12, B16-B17, B1-B3 (Letters+Num - Letters+Num)
-    const matchFull = token.match(/^([A-Za-z]+)(\d+)\s*[-–—]\s*([A-Za-z]+)(\d+)$/);
+    const matchFull = token.match(/^([A-Za-z]+)\s*(\d+)\s*[-–—]\s*([A-Za-z]+)\s*(\d+)$/);
     if (matchFull) {
       const row1 = matchFull[1].toUpperCase();
       const num1 = parseInt(matchFull[2], 10);
@@ -698,8 +867,8 @@ function expandSeatRanges(seatStr) {
       }
     }
 
-    // Pattern 2: E3-4, G11-15 (Letters+Num - Num)
-    const matchShort = token.match(/^([A-Za-z]+)(\d+)\s*[-–—]\s*(\d+)$/);
+    // Pattern 2: E3-4, G11-15, I16-17, K4-5, R21-22 (Letters+Num - Num)
+    const matchShort = token.match(/^([A-Za-z]+)\s*(\d+)\s*[-–—]\s*(\d+)$/);
     if (matchShort) {
       const row = matchShort[1].toUpperCase();
       const num1 = parseInt(matchShort[2], 10);
@@ -715,7 +884,7 @@ function expandSeatRanges(seatStr) {
     }
 
     // Pattern 3: Single seat e.g. F10, C16
-    const singleMatch = token.match(/^([A-Za-z]+)(\d+)$/);
+    const singleMatch = token.match(/^([A-Za-z]+)\s*(\d+)$/);
     if (singleMatch) {
       resultSeats.push(`${singleMatch[1].toUpperCase()}${singleMatch[2]}`);
     } else {
@@ -727,105 +896,309 @@ function expandSeatRanges(seatStr) {
   return Array.from(new Set(resultSeats)).join(', ');
 }
 
+/**
+ * Smart Attendee Name Extraction from Google Sheet Detail field
+ * Levels: 1. Keyword match -> 2. Line-by-line inspection -> 3. Fallback to mediaName
+ */
+function extractAttendeeNameFromDetail(detailText, mediaName = '') {
+  if (!detailText || typeof detailText !== 'string') return '';
+  const text = detailText.trim();
+  if (!text) return '';
+
+  // 1. Keyword match
+  const keywordRegex = /(?:ชื่อผู้รับบัตร|ผู้รับบัตร|รับบัตรในนาม|ชื่อผู้ติดต่อ|ผู้ติดต่อ|ชื่อคนรับบัตร|ชื่อผู้รับ|ผู้รับ)\s*[:.•\-–—\s]\s*([^\r\n•]+)/i;
+  const match = text.match(keywordRegex);
+  if (match && match[1]) {
+    let extracted = match[1].trim();
+    // Strip trailing phone numbers in parentheses e.g. "คุณโบว์ (089-999-8888)" -> "คุณโบว์"
+    extracted = extracted.replace(/\s*\([0-9\-\s\+]{8,15}\)\s*$/, '').trim();
+    // Strip bullet chars
+    extracted = extracted.replace(/^[•\-*·\s]+/, '').trim();
+    if (extracted.length >= 2 && !/^(?:\d+|ไม่สะดวก|สละสิทธิ์)$/.test(extracted)) {
+      return extracted;
+    }
+  }
+
+  // 2. Line-by-line inspection
+  const lines = text.split(/\r?\n/).map(l => l.trim().replace(/^[•\-*·\s]+/, '').trim()).filter(Boolean);
+  const mediaClean = (mediaName || '').toLowerCase().trim();
+
+  for (const line of lines) {
+    const lower = line.toLowerCase();
+    // Skip if matches media/page name
+    if (mediaClean && (lower === mediaClean || lower.includes(mediaClean))) continue;
+    // Skip if line is URL, email, or telephone
+    if (/https?:\/\/|www\.|facebook\.com|@/.test(lower)) continue;
+    if (/^(?:0\d{8,9}|tel|phone|โทร)/i.test(lower)) continue;
+    // Skip quota/ticket/seat lines
+    if (/(?:ที่นั่ง|seat|โควตา|โควต้า|จำนวน|ใบ|คน|ตั๋ว|รอบ|วันที่|เวลา)/i.test(lower)) continue;
+    // Skip greetings / notes
+    if (/^(?:ขอบคุณ|ยืนยัน|ขอรับ|ไม่สะดวก|สละสิทธิ์|หมายเหตุ)/i.test(lower)) continue;
+
+    // Check for Thai/English name patterns (e.g. "คุณเอ็ม", "(เฟิร์ส) ภัทราวุฒิ ใจสุทธิ", "เอกบุรุษ มีอิ่ม")
+    if (/^คุณ\s+[ก-๙a-zA-Z]+/i.test(line)) {
+      return line.replace(/\s*\([0-9\-\s\+]{8,15}\)\s*$/, '').trim();
+    }
+    if (/^(?:\([^\)]+\)\s*)?[ก-๙a-zA-Z]{2,}(?:\s+[ก-๙a-zA-Z]+)+$/.test(line)) {
+      return line.replace(/\s*\([0-9\-\s\+]{8,15}\)\s*$/, '').trim();
+    }
+  }
+
+  return '';
+}
+
 function parseCsvOrTsv(rawText) {
   if (!rawText || !rawText.trim()) return [];
 
   const cleanText = rawText.replace(/^\ufeff/, '').trim();
-  const lines = cleanText.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
-  if (lines.length === 0) return [];
+  if (!cleanText) return [];
 
-  // Detect delimiter (Tab or Comma or Semicolon)
-  const firstLine = lines[0];
+  // Determine delimiter (Tab, Semicolon, or Comma)
   let delimiter = '\t';
+  const firstLine = cleanText.split(/\r?\n/)[0] || '';
   if (firstLine.includes('\t')) {
     delimiter = '\t';
-  } else if (firstLine.includes(',')) {
-    delimiter = ',';
   } else if (firstLine.includes(';')) {
     delimiter = ';';
+  } else if (firstLine.includes(',')) {
+    delimiter = ',';
   }
 
-  const splitLine = (line, delim) => {
-    if (delim === '\t') {
-      return line.split('\t').map(c => c.trim().replace(/^["']|["']$/g, ''));
-    }
-    const result = [];
-    let current = '';
-    let inQuotes = false;
-    for (let i = 0; i < line.length; i++) {
-      const char = line[i];
-      if (char === '"' || char === "'") {
-        inQuotes = !inQuotes;
-      } else if (char === delim && !inQuotes) {
-        result.push(current.trim().replace(/^["']|["']$/g, ''));
-        current = '';
+  // Multiline RFC-4180 tokenizer
+  const rows = [];
+  let currentRow = [];
+  let currentField = '';
+  let inQuotes = false;
+  
+  for (let i = 0; i < cleanText.length; i++) {
+    const char = cleanText[i];
+    const nextChar = cleanText[i + 1];
+    
+    if (char === '"') {
+      if (inQuotes && nextChar === '"') {
+        currentField += '"';
+        i++;
       } else {
-        current += char;
+        inQuotes = !inQuotes;
       }
+    } else if (char === delimiter && !inQuotes) {
+      currentRow.push(currentField.trim());
+      currentField = '';
+    } else if ((char === '\r' || char === '\n') && !inQuotes) {
+      if (char === '\r' && nextChar === '\n') i++;
+      currentRow.push(currentField.trim());
+      currentField = '';
+      if (currentRow.some(c => c.length > 0)) {
+        rows.push(currentRow);
+      }
+      currentRow = [];
+    } else {
+      currentField += char;
     }
-    result.push(current.trim().replace(/^["']|["']$/g, ''));
-    return result;
-  };
+  }
+  if (currentField.length > 0 || currentRow.length > 0) {
+    currentRow.push(currentField.trim());
+    if (currentRow.some(c => c.length > 0)) {
+      rows.push(currentRow);
+    }
+  }
 
-  const headers = splitLine(lines[0], delimiter).map(h => h.toLowerCase().trim());
+  if (rows.length === 0) return [];
 
+  // Inspect header row
+  const rawHeaders = rows[0].map(h => h.toLowerCase().trim());
+  
   // Find column indexes based on keywords
-  let colNo = headers.findIndex(h => h === 'no' || h.includes('ลำดับ'));
-  let colMedia = headers.findIndex(h => h === 'media' || h.includes('สื่อ') || h.includes('สังกัด') || h.includes('องค์กร') || h.includes('เพจ'));
-  let colName = headers.findIndex(h => h === 'name' || h.includes('ชื่อ') || h.includes('guest'));
-  let colParticipant = headers.findIndex(h => h === 'participant' || h.includes('จำนวน') || h.includes('โควตา') || h.includes('ticket') || h.includes('ที่นั่งรวม'));
-  let colSeat = headers.findIndex(h => h === 'seat' || h.includes('ที่นั่ง') || h.includes('เลขที่นั่ง'));
-  let colSign = headers.findIndex(h => h === 'sign' || h.includes('ลายเซ็น') || h.includes('เช็คอิน') || h.includes('เซ็น'));
-  let colTel = headers.findIndex(h => h === 'tel' || h.includes('phone') || h.includes('เบอร์') || h.includes('โทร'));
+  let colNo = rawHeaders.findIndex(h => h === 'no' || h === 'no.' || h === '#' || h.includes('ลำดับ'));
+  let colName = rawHeaders.findIndex(h => h === 'name' || h === 'neme' || h === 'ชื่อ' || h === 'ชื่อแขก' || h === 'ชื่อสื่อ' || h === 'สื่อ' || h === 'แขก' || h === 'ผู้รับบัตร' || h === 'ผู้ติดต่อ' || h === 'guest');
+  let colFollower = rawHeaders.findIndex(h => h === 'follower' || h === 'followers' || h === 'ผู้ติดตาม' || h.includes('follower') || h.includes('ผู้ติดตาม'));
+  let colPic = rawHeaders.findIndex(h => h === 'pic' || h === 'ผู้ดูแล' || h === 'ผู้ประสานงาน' || h === 'coordinator' || h === 'contact person');
+  let colDetail = rawHeaders.findIndex(h => h === 'detail' || h === 'details' || h === 'รายละเอียด' || h === 'สังกัด' || h === 'org' || h === 'organization' || h === 'เพจ');
+  let colParticipant = rawHeaders.findIndex(h => h === 'participant' || h === 'จำนวน' || h === 'โควตา' || h === 'โควต้า' || h === 'ticket' || h === 'tickets' || h === 'qty' || h === 'count' || h.includes('จำนวน') || h.includes('โควตา'));
+  let colSeat = rawHeaders.findIndex(h => h === 'seat' || h === 'seats' || h === 'seat value' || h === 'ที่นั่ง' || h.includes('ที่นั่ง'));
+  let colSign = rawHeaders.findIndex(h => h === 'sign' || h === 'attended' || h.includes('เช็คอิน') || h.includes('เซ็น') || h.includes('ลายเซ็น'));
+  let colTel = rawHeaders.findIndex(h => h === 'tel' || h === 'phone' || h === 'telephone' || h.includes('เบอร์') || h.includes('โทร'));
+
+  const isGoogleSheet6Col = (colFollower >= 0 && colPic >= 0) ||
+                           (rows[0].length === 6 && (rawHeaders.includes('follower') || rawHeaders.includes('pic') || rawHeaders.includes('seat value')));
+
+  const isGoogleForm3Col = (colName >= 0 && colDetail >= 0 && colParticipant >= 0 && colSeat === -1 && colTel === -1 && colFollower === -1) ||
+                           (rows[0].length === 3 && (rawHeaders.includes('name') || rawHeaders.includes('ชื่อ')) && (rawHeaders.includes('detail') || rawHeaders.includes('รายละเอียด')));
 
   let startIndex = 1;
-  // If no known headers detected, assume row 0 is data if matching standard order
-  if (colMedia === -1 && colName === -1 && colSeat === -1) {
+  const hasKnownHeader = (colName !== -1 || colDetail !== -1 || colParticipant !== -1 || colSeat !== -1 || colTel !== -1 || colFollower !== -1 || colPic !== -1);
+  if (!hasKnownHeader) {
     startIndex = 0;
-    colNo = 0; colMedia = 1; colName = 2; colParticipant = 3; colSeat = 4; colSign = 5; colTel = 6;
-  } else {
-    if (colNo === -1) colNo = 0;
-    if (colMedia === -1) colMedia = 1;
-    if (colName === -1) colName = 2;
+    const colCount = rows[0].length;
+    if (colCount === 3) {
+      colName = 0;
+      // Auto-detect whether col 1 or col 2 is numeric quantity
+      const isCol1Numeric = /^\d+$/.test(rows[0][1]?.trim());
+      const isCol2Numeric = /^\d+$/.test(rows[0][2]?.trim());
+      if (isCol1Numeric && !isCol2Numeric) {
+        colParticipant = 1;
+        colDetail = 2;
+      } else {
+        colDetail = 1;
+        colParticipant = 2;
+      }
+    } else if (colCount === 5) {
+      colName = 0; colDetail = 1; colParticipant = 2; colSeat = 3; colTel = 4;
+    } else if (colCount === 6) {
+      const isCol1Follower = /^[\d,]+$/.test(rows[0][1]?.trim());
+      const isCol3Part = /^\d{1,2}$/.test(rows[0][3]?.trim());
+      const isCol5Seat = /^[A-Za-z]{1,2}\s*\d+/i.test(rows[0][5]?.trim());
+      if (isCol1Follower && isCol3Part && isCol5Seat) {
+        colName = 0; colFollower = 1; colPic = 2; colParticipant = 3; colDetail = 4; colSeat = 5;
+      } else {
+        colName = 0; colDetail = 1; colParticipant = 2; colSeat = 3; colTel = 4; colSign = 5;
+      }
+    } else if (colCount >= 7) {
+      colNo = 0; colName = 1; colDetail = 2; colParticipant = 3; colSeat = 4; colTel = 5; colSign = 6;
+    } else {
+      colName = 0; colDetail = 1; colParticipant = 2;
+    }
+  } else if (isGoogleSheet6Col) {
+    if (colName === -1) colName = 0;
+    if (colFollower === -1) colFollower = 1;
+    if (colPic === -1) colPic = 2;
     if (colParticipant === -1) colParticipant = 3;
-    if (colSeat === -1) colSeat = 4;
-    if (colSign === -1) colSign = 5;
-    if (colTel === -1) colTel = 6;
+    if (colDetail === -1) colDetail = 4;
+    if (colSeat === -1) colSeat = 5;
+  }
+
+  function extractPhoneFromText(text) {
+    if (!text) return '';
+    const clean = String(text);
+    // 1. In parentheses: (0812345678)
+    const parenMatch = clean.match(/\((0[0-9\-\s]{8,11})\)/);
+    if (parenMatch) return parenMatch[1].replace(/[\-\s]/g, '');
+
+    // 2. Explicit label: เบอร์โทร / tel / phone
+    const explicitMatch = clean.match(/(?:เบอร์โทร|เบอร์โทรศัพท์|เบอร์|โทร|tel|phone|contact)\s*[:.•\-–—]?\s*([0-9\-\+\s]{9,15})/i);
+    if (explicitMatch) {
+      const p = explicitMatch[1].replace(/[\-\s]/g, '');
+      if (/^0[0-9]{8,9}$/.test(p)) return p;
+    }
+
+    // 3. Standalone phone: 08x-xxx-xxxx or 08xxxxxxxx
+    const phoneMatch = clean.match(/(?:^|[^\d])(0[689]\d{1}[-\s]?\d{3}[-\s]?\d{4}|0[23457]\d{1}[-\s]?\d{3}[-\s]?\d{3,4})(?:$|[^\d])/);
+    if (phoneMatch) {
+      return phoneMatch[1].replace(/[\-\s]/g, '');
+    }
+    return '';
   }
 
   const parsedList = [];
+  let confirmedCount = 0;
+  let confirmedSeats = 0;
+  let emptyCount = 0;
+  let declinedCount = 0;
 
-  for (let i = startIndex; i < lines.length; i++) {
-    const cols = splitLine(lines[i], delimiter);
-    if (cols.length === 0 || cols.every(c => !c)) continue;
+  for (let i = startIndex; i < rows.length; i++) {
+    const cols = rows[i];
+    if (!cols || cols.length === 0 || cols.every(c => !c)) continue;
 
-    const noVal = colNo >= 0 && cols[colNo] !== undefined ? cols[colNo] : (i + 1);
-    const mediaVal = colMedia >= 0 && cols[colMedia] !== undefined ? cols[colMedia] : '';
-    const nameVal = colName >= 0 && cols[colName] !== undefined ? cols[colName] : '';
-    const participantVal = colParticipant >= 0 && cols[colParticipant] !== undefined ? parseInt(cols[colParticipant], 10) : 1;
-    const seatVal = colSeat >= 0 && cols[colSeat] !== undefined ? cols[colSeat] : '';
-    const signVal = colSign >= 0 && cols[colSign] !== undefined ? cols[colSign] : '';
-    const telVal = colTel >= 0 && cols[colTel] !== undefined ? cols[colTel] : '';
+    let noVal = colNo >= 0 && cols[colNo] !== undefined ? cols[colNo] : (parsedList.length + 1);
+    
+    let nameVal = colName >= 0 && cols[colName] !== undefined ? cols[colName].trim() : '';
+    let detailVal = colDetail >= 0 && cols[colDetail] !== undefined ? cols[colDetail].trim() : '';
+    let rawQty = colParticipant >= 0 && cols[colParticipant] !== undefined ? cols[colParticipant].trim() : '';
+    let seatVal = colSeat >= 0 && cols[colSeat] !== undefined ? cols[colSeat].trim() : '';
+    let signVal = colSign >= 0 && cols[colSign] !== undefined ? cols[colSign].trim() : '';
+    let telVal = colTel >= 0 && cols[colTel] !== undefined ? cols[colTel].trim() : '';
+    let followerVal = colFollower >= 0 && cols[colFollower] !== undefined ? cols[colFollower].trim() : '';
+    let picVal = colPic >= 0 && cols[colPic] !== undefined ? cols[colPic].trim() : '';
 
-    if (!mediaVal && !nameVal && !seatVal) continue;
+    // If Tel is not in a dedicated column, extract telephone from Detail if available
+    if (!telVal && detailVal) {
+      telVal = extractPhoneFromText(detailVal);
+    }
+
+    // Determine organization and attendee name
+    let orgVal = '';
+    if (colFollower >= 0 || colPic >= 0 || isGoogleSheet6Col) {
+      orgVal = nameVal || 'ไม่ระบุสังกัด'; // Col A is Media Name
+      const extractedAttendee = extractAttendeeNameFromDetail(detailVal, orgVal);
+      nameVal = extractedAttendee || orgVal || `แขกลำดับที่ ${parsedList.length + 1}`;
+    } else {
+      orgVal = detailVal || nameVal || 'ไม่ระบุสังกัด';
+    }
+
+    // Parse Follower number (removing commas)
+    let parsedFollower = null;
+    if (followerVal) {
+      const parsedNum = parseInt(followerVal.replace(/,/g, ''), 10);
+      if (!isNaN(parsedNum)) parsedFollower = parsedNum;
+    }
+
+    let parsedPic = (picVal && picVal.trim() !== '') ? picVal.trim() : null;
+
+    // Decline detection
+    let isDeclined = false;
+    if (/ไม่เข้างาน|สละสิทธิ์|ไม่สะดวก|ไม่สามารถ|ยกเลิก|cancel|ไม่ไป/i.test(rawQty) ||
+        /ไม่เข้างาน|สละสิทธิ์|ไม่สะดวก|ไม่สามารถ|ยกเลิก|cancel|ไม่ไป/i.test(detailVal)) {
+      isDeclined = true;
+    }
+
+    // Empty unconfirmed row detection (Yellow rows in Google Form / Sheet)
+    let isEmpty = false;
+    if (!rawQty && !detailVal && !seatVal) {
+      isEmpty = true;
+    }
+
+    // Participant count calculation
+    let participantVal = parseInt(rawQty, 10);
+    if (isNaN(participantVal) || participantVal <= 0) {
+      if (rawQty) {
+        const qm = rawQty.match(/\d+/);
+        if (qm) participantVal = parseInt(qm[0], 10);
+      }
+      if ((isNaN(participantVal) || participantVal <= 0) && detailVal) {
+        const dqm = detailVal.match(/(?:จำนวนผู้เข้าชม|จำนวน|โควต้า|ที่นั่ง|ใบ|คน)\s*[:.•\-–—]?\s*.*?(\d+)/i);
+        if (dqm) participantVal = parseInt(dqm[1], 10);
+      }
+    }
+
+    if (isEmpty) {
+      participantVal = 0;
+    } else if (isNaN(participantVal) || participantVal <= 0) {
+      participantVal = 1;
+    }
+
+    if (!nameVal && !detailVal && !seatVal) continue;
+
+    // Fallback if name is blank but detail exists
+    if (!nameVal && detailVal) {
+      nameVal = detailVal.split(/\r?\n/)[0].substring(0, 60);
+    }
+
+    if (isDeclined) {
+      declinedCount++;
+    } else if (isEmpty) {
+      emptyCount++;
+    } else {
+      confirmedCount++;
+      confirmedSeats += participantVal;
+    }
 
     const expandedSeats = expandSeatRanges(seatVal);
     const attended = !!(signVal && signVal.trim() !== '' && signVal.trim() !== '-' && signVal.trim() !== '0');
-
     const seatArray = expandedSeats ? expandedSeats.split(',').map(s => s.trim()).filter(Boolean) : [];
-    const participantCount = !isNaN(participantVal) && participantVal > 0 ? participantVal : (seatArray.length || 1);
+    const participantCount = participantVal;
 
     let guestType = 'press';
-    if (seatArray.some(s => s.startsWith('VP') || s.startsWith('AA'))) {
-      guestType = 'vip';
-    } else if (seatArray.some(s => s.startsWith('FA') || s.startsWith('FB') || s.startsWith('FC') || s.startsWith('FD') || s.startsWith('FE') || s.startsWith('FF'))) {
+    if (seatArray.some(s => s.startsWith('VP') || s.startsWith('AA') || s.startsWith('FA') || s.startsWith('FB') || s.startsWith('FC') || s.startsWith('FD') || s.startsWith('FE') || s.startsWith('FF'))) {
       guestType = 'vip';
     }
 
     parsedList.push({
       no: noVal,
-      organization: mediaVal || 'ไม่ระบุสังกัด',
-      name: nameVal || mediaVal || `แขกลำดับที่ ${i}`,
+      name: nameVal || `แขกลำดับที่ ${parsedList.length + 1}`,
+      detail: detailVal,
+      organization: orgVal,
+      follower: parsedFollower,
+      pic: parsedPic,
       participant: participantCount,
       seat: expandedSeats || null,
       seatRaw: seatVal,
@@ -834,9 +1207,20 @@ function parseCsvOrTsv(rawText) {
       phone: telVal,
       email: '',
       guestType,
-      status: 'accepted'
+      status: isDeclined ? 'declined' : (isEmpty ? 'pending' : 'accepted'),
+      isDeclined,
+      isEmpty,
+      isConfirmed: !isDeclined && !isEmpty
     });
   }
+
+  parsedList.fileStats = {
+    totalRows: parsedList.length,
+    confirmedCount,
+    confirmedSeats,
+    emptyCount,
+    declinedCount
+  };
 
   return parsedList;
 }
@@ -857,6 +1241,7 @@ function setupCsvImportModal() {
   const btnBrowse = document.getElementById('btnBrowseCsvFile');
   const dropZone = document.getElementById('csvDropZone');
   const chosenFileName = document.getElementById('chosenFileName');
+  const chkConfirmedOnly = document.getElementById('chkImportConfirmedOnly');
 
   if (!modal) return;
 
@@ -905,6 +1290,12 @@ function setupCsvImportModal() {
     });
   }
 
+  if (chkConfirmedOnly) {
+    chkConfirmedOnly.addEventListener('change', () => {
+      renderImportPreview();
+    });
+  }
+
   if (btnBrowse && fileInput) {
     btnBrowse.addEventListener('click', () => fileInput.click());
   }
@@ -950,49 +1341,119 @@ function setupCsvImportModal() {
   function renderImportPreview() {
     const text = textarea ? textarea.value : '';
     const parsed = parseCsvOrTsv(text);
-    currentParsedGuests = parsed;
 
     const previewWrapper = document.getElementById('importPreviewWrapper');
     const previewCount = document.getElementById('previewCount');
     const previewSeatCount = document.getElementById('previewSeatCount');
     const tbody = document.getElementById('previewTableBody');
+    const summaryBar = document.getElementById('importSummaryBar');
+    const chkOnly = document.getElementById('chkImportConfirmedOnly');
 
     if (!previewWrapper || !tbody) return;
 
     if (parsed.length === 0) {
       previewWrapper.classList.add('hidden');
+      if (summaryBar) summaryBar.classList.add('hidden');
       if (btnConfirm) btnConfirm.disabled = true;
+      currentParsedGuests = [];
       return;
     }
 
+    // Update File Stats Pills
+    if (summaryBar && parsed.fileStats) {
+      summaryBar.classList.remove('hidden');
+      const elConf = document.getElementById('sumConfirmedCount');
+      if (elConf) elConf.textContent = parsed.fileStats.confirmedCount;
+      const elSeats = document.getElementById('sumConfirmedSeats');
+      if (elSeats) elSeats.textContent = parsed.fileStats.confirmedSeats;
+      const elEmpty = document.getElementById('sumEmptyCount');
+      if (elEmpty) elEmpty.textContent = parsed.fileStats.emptyCount;
+      const elDec = document.getElementById('sumDeclinedCount');
+      if (elDec) elDec.textContent = parsed.fileStats.declinedCount;
+    }
+
+    const filterConfirmedOnly = chkOnly ? chkOnly.checked : true;
+    const finalGuests = filterConfirmedOnly 
+      ? parsed.filter(p => p.isConfirmed)
+      : parsed;
+
+    currentParsedGuests = finalGuests;
+
     previewWrapper.classList.remove('hidden');
-    if (btnConfirm) btnConfirm.disabled = false;
+    if (btnConfirm) btnConfirm.disabled = finalGuests.length === 0;
 
     let totalSeats = 0;
-    parsed.forEach(p => {
-      totalSeats += (p.seatCount || 0);
+    finalGuests.forEach(p => {
+      totalSeats += (p.participant || 0);
     });
 
-    if (previewCount) previewCount.textContent = parsed.length;
-    if (previewSeatCount) previewSeatCount.textContent = `ที่นั่งรวม: ${totalSeats} ที่`;
+    if (previewCount) previewCount.textContent = finalGuests.length;
 
-    const rowsHtml = parsed.slice(0, 50).map(item => `
-      <tr>
-        <td><strong>${escapeHtml(String(item.no || ''))}</strong></td>
-        <td>${escapeHtml(item.organization || '')}</td>
-        <td>${escapeHtml(item.name || '')}</td>
-        <td style="text-align: center;">${item.participant}</td>
-        <td>
-          <span style="font-family: monospace; color: var(--color-gold); font-weight: 600;">${escapeHtml(item.seat || '-')}</span>
-        </td>
+    // Check seat collisions with existing screening guests (unless replace mode)
+    const replaceMode = document.querySelector('input[name="importMode"]:checked')?.value === 'replace';
+    const occupiedSeatsMap = new Map();
+    if (!replaceMode && Array.isArray(state.guests)) {
+      state.guests.forEach(g => {
+        if (!g.seat) return;
+        const sList = g.seat.split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
+        sList.forEach(s => occupiedSeatsMap.set(s, g));
+      });
+    }
+
+    const batchSeenSeats = new Map();
+    let collisionCount = 0;
+
+    const rowsHtml = finalGuests.slice(0, 50).map((item, idx) => {
+      let seatDisplayHtml = '-';
+      let rowHasCollision = false;
+
+      if (item.seat) {
+        const itemSeats = item.seat.split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
+        const seatBadges = itemSeats.map(st => {
+          if (!replaceMode && occupiedSeatsMap.has(st)) {
+            rowHasCollision = true;
+            collisionCount++;
+            const occ = occupiedSeatsMap.get(st);
+            return `<span class="badge" style="background: rgba(239, 68, 68, 0.25); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.5); padding: 1px 4px; border-radius: 3px;" title="ที่นั่ง ${st} ชนกับคุณ ${escapeHtml(occ.name || '')}">${st} ⚠️ ชน</span>`;
+          }
+          if (batchSeenSeats.has(st)) {
+            rowHasCollision = true;
+            collisionCount++;
+            return `<span class="badge" style="background: rgba(239, 68, 68, 0.25); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.5); padding: 1px 4px; border-radius: 3px;" title="ที่นั่ง ${st} ซ้ำในไฟล์">${st} ⚠️ ซ้ำ</span>`;
+          }
+          batchSeenSeats.set(st, idx + 1);
+          return `<span style="font-family: monospace; color: var(--color-gold); font-weight: 600;">${st}</span>`;
+        });
+        seatDisplayHtml = seatBadges.join(', ');
+      }
+
+      return `
+      <tr style="${rowHasCollision ? 'background: rgba(239, 68, 68, 0.08);' : ''}">
+        <td><strong>${escapeHtml(String(item.no || (idx + 1)))}</strong></td>
+        <td><strong style="color: #fff;">${escapeHtml(item.name || '')}</strong></td>
+        <td><span style="font-size: 12px; color: var(--text-muted);">${escapeHtml(item.detail || item.organization || '-')}</span></td>
+        <td style="font-family: monospace; font-size: 12px;">${item.follower != null ? item.follower.toLocaleString() : '-'}</td>
+        <td>${item.pic ? `<span class="pic-badge">${escapeHtml(item.pic)}</span>` : '<span style="color: var(--text-dim);">-</span>'}</td>
+        <td style="text-align: center;"><strong>${item.participant}</strong></td>
+        <td>${seatDisplayHtml}</td>
         <td>${escapeHtml(item.phone || '-')}</td>
         <td>
-          ${item.attended ? '<span class="preview-badge-checkin"><i class="fa-solid fa-check"></i> เช็คอินแล้ว</span>' : '<span class="preview-badge-pending">รอเช็คอิน</span>'}
+          ${rowHasCollision ? '<span class="stat-pill declined" style="padding: 2px 6px; font-size: 10.5px; margin-right: 4px;"><i class="fa-solid fa-triangle-exclamation"></i> ที่นั่งชน</span>' : ''}
+          ${item.isDeclined 
+            ? '<span class="stat-pill declined" style="padding: 2px 7px; font-size: 11px;"><i class="fa-solid fa-circle-xmark"></i> สละสิทธิ์</span>' 
+            : (item.isEmpty 
+              ? '<span class="stat-pill empty" style="padding: 2px 7px; font-size: 11px;"><i class="fa-solid fa-clock"></i> รอข้อมูล</span>' 
+              : `<span class="stat-pill confirmed" style="padding: 2px 7px; font-size: 11px;"><i class="fa-solid fa-circle-check"></i> ยืนยัน (${item.participant} ที่)</span>`)}
         </td>
       </tr>
-    `).join('');
+    `;
+    }).join('');
 
-    const moreText = parsed.length > 50 ? `<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 8px;">...และอีก ${parsed.length - 50} รายการ...</td></tr>` : '';
+    if (previewSeatCount) {
+      previewSeatCount.innerHTML = `ที่นั่งรวม: ${totalSeats} ที่${collisionCount > 0 ? `<span style="color: #f87171; font-weight: 600; margin-left: 8px;"><i class="fa-solid fa-triangle-exclamation"></i> พบที่นั่งชน ${collisionCount} ที่</span>` : ''}`;
+    }
+
+    const moreText = finalGuests.length > 50 ? `<tr><td colspan="9" style="text-align: center; color: var(--text-muted); padding: 8px;">...และอีก ${finalGuests.length - 50} รายการ...</td></tr>` : '';
 
     tbody.innerHTML = rowsHtml + moreText;
   }
@@ -1042,7 +1503,29 @@ function setupCsvImportModal() {
 }
 
 // Refresh all data from backend (filtered by active screening)
-async function refreshData() {
+// Targeted DOM helper: updates .is-checked-in on specific seat elements without full map re-render
+function updateSeatsCheckInDom(seatIds, isCheckedIn) {
+  if (!seatIds) return;
+  const list = Array.isArray(seatIds) ? seatIds : [seatIds];
+  const container = document.getElementById('seatsGrid');
+  if (!container) return;
+
+  list.forEach(id => {
+    const cleanId = String(id).trim().toUpperCase();
+    const btn = container.querySelector(`.cinema-seat[data-seat-id="${cleanId}"]`);
+    if (btn) {
+      if (isCheckedIn) {
+        btn.classList.add('is-checked-in');
+        btn.classList.add('seat-checked-in');
+      } else {
+        btn.classList.remove('is-checked-in');
+        btn.classList.remove('seat-checked-in');
+      }
+    }
+  });
+}
+
+async function refreshData(options = {}) {
   try {
     const params = {};
     if (state.activeScreeningId) {
@@ -1059,15 +1542,86 @@ async function refreshData() {
     }
     if (guestsRes.success) {
       state.guests = guestsRes.data;
+      window._cachedSeatsMap = null;
+      window._cachedSeatsMapTime = null;
     }
 
     renderOverview();
-    renderSeatsGrid();
+
+    // High performance optimization: skip full 1,164-seat DOM destruction if only updating status
+    if (!options.skipSeatsGrid) {
+      renderSeatsGrid();
+    }
+
+    populatePicFilter();
     renderGuestTable();
   } catch (err) {
     console.error('Failed to load data:', err);
     showToast('ไม่สามารถเชื่อมต่อข้อมูลได้: ' + err.message, 'error');
   }
+}
+
+function populatePicFilter() {
+  const select = document.getElementById('filterPic');
+  if (!select) return;
+
+  const currentVal = state.filters.pic || 'all';
+  const picCounts = {};
+  if (Array.isArray(state.guests)) {
+    state.guests.forEach(g => {
+      if (g.pic && String(g.pic).trim() !== '') {
+        const p = String(g.pic).trim();
+        picCounts[p] = (picCounts[p] || 0) + 1;
+      }
+    });
+  }
+
+  const sortedPics = Object.keys(picCounts).sort((a, b) => a.localeCompare(b, 'th'));
+  let optionsHtml = '<option value="all">PIC ทั้งหมด</option>';
+  sortedPics.forEach(pic => {
+    const isSelected = currentVal === pic ? ' selected' : '';
+    optionsHtml += `<option value="${escapeHtml(pic)}"${isSelected}>${escapeHtml(pic)} (${picCounts[pic]})</option>`;
+  });
+
+  select.innerHTML = optionsHtml;
+}
+
+function setupFollowerSort() {
+  const thFollower = document.getElementById('thColFollower');
+  const icon = document.getElementById('iconSortFollower');
+  if (!thFollower) return;
+
+  thFollower.addEventListener('click', () => {
+    if (state.sortFollower === null) {
+      state.sortFollower = 'desc'; // มากไปน้อย
+    } else if (state.sortFollower === 'desc') {
+      state.sortFollower = 'asc'; // น้อยไปมาก
+    } else {
+      state.sortFollower = null; // คืนค่าปกติ
+    }
+
+    if (icon) {
+      if (state.sortFollower === 'desc') {
+        icon.className = 'fa-solid fa-sort-down';
+        icon.style.color = 'var(--color-gold)';
+        icon.style.opacity = '1';
+        thFollower.title = 'เรียงลำดับ: มากไปน้อย (คลิกเพื่อเรียงน้อยไปมาก)';
+      } else if (state.sortFollower === 'asc') {
+        icon.className = 'fa-solid fa-sort-up';
+        icon.style.color = 'var(--color-gold)';
+        icon.style.opacity = '1';
+        thFollower.title = 'เรียงลำดับ: น้อยไปมาก (คลิกเพื่อคืนค่าเดิม)';
+      } else {
+        icon.className = 'fa-solid fa-sort';
+        icon.style.color = '';
+        icon.style.opacity = '0.6';
+        thFollower.title = 'คลิกเพื่อเรียงลำดับตาม Follower';
+      }
+    }
+
+    state.guestPage = 1;
+    renderGuestTable();
+  });
 }
 
 // ================= 1. OVERVIEW VIEW =================
@@ -1114,14 +1668,36 @@ function renderOverview() {
   if (valSeats) valSeats.textContent = `${bookedSeats}/${totalSeats} ที่ (${sRate}%)`;
 }
 
-// Helper: build map of seat ID -> guest
+// Helper: build map of seat ID -> guest (with per-seat checkedIn status)
 function getSeatsMap() {
   const map = {};
   state.guests.forEach(guest => {
-    if (guest.seat) {
-      const seatList = guest.seat.split(',').map(s => s.trim());
+    if (Array.isArray(guest.seats) && guest.seats.length > 0) {
+      guest.seats.forEach(sObj => {
+        const code = (typeof sObj === 'object' ? sObj.code : sObj).trim().toUpperCase();
+        if (code) {
+          const isChecked = typeof sObj === 'object' ? !!sObj.checkedIn : !!guest.attended;
+          map[code] = {
+            ...guest,
+            isSeatCheckedIn: isChecked,
+            seatCheckedIn: isChecked,
+            currentSeatCode: code
+          };
+        }
+      });
+    } else if (guest.seat) {
+      const seatList = guest.seat.split(',').map(s => s.trim().toUpperCase());
+      const attSet = new Set((Array.isArray(guest.attendedSeats) ? guest.attendedSeats : []).map(s => s.trim().toUpperCase()));
       seatList.forEach(s => {
-        if (s) map[s] = guest;
+        if (s) {
+          const isChecked = attSet.size > 0 ? attSet.has(s) : !!guest.attended;
+          map[s] = {
+            ...guest,
+            isSeatCheckedIn: isChecked,
+            seatCheckedIn: isChecked,
+            currentSeatCode: s
+          };
+        }
       });
     }
   });
@@ -1173,23 +1749,109 @@ function getActiveRows() {
   return ALL_SEAT_ROWS.slice(0, numRows);
 }
 
+// ================= SEAT CATEGORY COLOR CODING ENGINE & CACHE =================
+function computeSeatColorsCache(seatsMap) {
+  state.seatColors = {};
+  if (typeof SeatCategoryColors === 'undefined') return;
+
+  for (const [seatId, guest] of Object.entries(seatsMap)) {
+    if (guest && guest.pic) {
+      state.seatColors[seatId] = SeatCategoryColors.getSeatCategoryInfo(guest.pic);
+    } else if (guest) {
+      state.seatColors[seatId] = SeatCategoryColors.getSeatCategoryInfo(null);
+    }
+  }
+}
+
+function updateCategoryLegendCounts(seatsMap) {
+  const counts = {
+    all: 0,
+    aninetwork: 0,
+    idol: 0,
+    luckydraw: 0,
+    phoenixnext: 0,
+    blessingstudio: 0,
+    vip: 0,
+    other: 0
+  };
+
+  for (const [seatId, guest] of Object.entries(seatsMap)) {
+    if (!guest) continue;
+    counts.all++;
+    const info = (state.seatColors && state.seatColors[seatId]) ||
+      (typeof SeatCategoryColors !== 'undefined' ? SeatCategoryColors.getSeatCategoryInfo(guest.pic) : null);
+    const key = info ? info.key : 'other';
+    if (counts[key] !== undefined) {
+      counts[key]++;
+    } else {
+      counts.other++;
+    }
+  }
+
+  const setBadge = (id, num) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = num > 0 ? `(${num})` : '';
+  };
+
+  setBadge('catCountAll', counts.all);
+  setBadge('catCountAni', counts.aninetwork);
+  setBadge('catCountIdol', counts.idol);
+  setBadge('catCountLucky', counts.luckydraw);
+  setBadge('catCountPhoenix', counts.phoenixnext);
+  setBadge('catCountBlessing', counts.blessingstudio);
+  setBadge('catCountVip', counts.vip);
+  setBadge('catCountOther', counts.other);
+}
+
+function applyCategoryFilter(catKey) {
+  state.activeCategoryFilter = catKey || 'all';
+
+  // Update active state on legend buttons
+  const buttons = document.querySelectorAll('.cat-legend-btn');
+  buttons.forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.category === state.activeCategoryFilter);
+  });
+
+  // Apply dimming directly on DOM for 60fps instant response without rebuilding 1,164 seats
+  const container = document.getElementById('seatsGrid');
+  if (!container) return;
+
+  const seats = container.querySelectorAll('.cinema-seat');
+  seats.forEach(btn => {
+    if (state.activeCategoryFilter === 'all') {
+      btn.classList.remove('seat-cat-dimmed');
+    } else {
+      const match = btn.dataset.categoryKey === state.activeCategoryFilter;
+      btn.classList.toggle('seat-cat-dimmed', !match);
+    }
+  });
+}
+
+function setupCategoryLegend() {
+  const container = document.getElementById('catLegendButtons');
+  if (!container) return;
+
+  container.addEventListener('click', (e) => {
+    const btn = e.target.closest('.cat-legend-btn');
+    if (!btn) return;
+    const cat = btn.dataset.category;
+    if (state.activeCategoryFilter === cat && cat !== 'all') {
+      applyCategoryFilter('all');
+    } else {
+      applyCategoryFilter(cat);
+    }
+  });
+}
+
 // ================= 2. SEAT MAP VIEW (REALISTIC CINEMA AUDITORIUM - PAVALAI 1,164 SEATS) =================
 function renderSeatsGrid() {
   const container = document.getElementById('seatsGrid');
   if (!container) return;
 
   const seatsMap = getSeatsMap();
+  computeSeatColorsCache(seatsMap);
+  updateCategoryLegendCounts(seatsMap);
   container.innerHTML = '';
-
-  // Sweet spot boundary overlay visibility
-  const sweetSpotIndicator = document.getElementById('sweetSpotIndicator');
-  if (sweetSpotIndicator) {
-    if (state.activeSeatFilter === 'sweet-spot') {
-      sweetSpotIndicator.classList.remove('hidden');
-    } else {
-      sweetSpotIndicator.classList.add('hidden');
-    }
-  }
 
   if (state.pavalaiLayout && state.pavalaiLayout.rows && state.pavalaiLayout.rows.length > 0) {
     let hasDrawnBalconyDivider = false;
@@ -1215,11 +1877,32 @@ function renderSeatsGrid() {
       const rowEl = document.createElement('div');
       rowEl.className = 'pavalai-row';
       rowEl.dataset.tier = rowData.tier;
+      rowEl.dataset.row = rowData.label;
 
-      // Left Row Label
+      // Tier styling and descriptive metadata for row badges
+      const isBalcony = rowData.tier === 'balcony';
+      const labelStr = rowData.label;
+      const isVipRow = ['A', 'B'].includes(labelStr);
+
+      let tierClass = 'label-tier-standard';
+      let tierDesc = 'Grand Stalls';
+      if (isBalcony) {
+        tierClass = 'label-tier-balcony';
+        tierDesc = 'ชั้น 2 Royal Balcony';
+      } else if (isVipRow) {
+        tierClass = 'label-tier-vip';
+        tierDesc = 'VIP Stalls';
+      }
+
+      const displayLabel = labelStr === 'VP / AA' ? 'AA' : labelStr;
+      const rowTitle = `แถว ${labelStr} (${tierDesc}) · ${rowData.seats.length} ที่นั่ง (คลิกดูสรุปแถว)`;
+
+      // Left Row Label Badge (ป้ายระบุแถวฝั่งซ้ายสุด)
       const labelLeft = document.createElement('div');
-      labelLeft.className = 'row-label label-left';
-      labelLeft.textContent = rowData.label;
+      labelLeft.className = `row-label label-left ${tierClass}`;
+      labelLeft.textContent = displayLabel;
+      labelLeft.dataset.row = labelStr;
+      labelLeft.title = rowTitle;
       rowEl.appendChild(labelLeft);
 
       // Special Projection Room in Row B
@@ -1233,14 +1916,16 @@ function renderSeatsGrid() {
       // Render Seats in this Row
       rowData.seats.forEach(s => {
         const seatBtn = createSeatButtonPavalai(s, rowData, seatsMap);
-        seatBtn.style.gridColumn = (s.col + 1);
+        seatBtn.style.gridColumn = (s.col - 4);
         rowEl.appendChild(seatBtn);
       });
 
-      // Right Row Label
+      // Right Row Label Badge (ป้ายระบุแถวฝั่งขวาสุด)
       const labelRight = document.createElement('div');
-      labelRight.className = 'row-label label-right';
-      labelRight.textContent = rowData.label;
+      labelRight.className = `row-label label-right ${tierClass}`;
+      labelRight.textContent = displayLabel;
+      labelRight.dataset.row = labelStr;
+      labelRight.title = rowTitle;
       rowEl.appendChild(labelRight);
 
       container.appendChild(rowEl);
@@ -1251,9 +1936,13 @@ function renderSeatsGrid() {
     activeRows.forEach(row => {
       const rowEl = document.createElement('div');
       rowEl.className = 'seat-row';
+      rowEl.dataset.row = row;
+
       const labelLeft = document.createElement('div');
-      labelLeft.className = 'row-label';
+      labelLeft.className = 'row-label label-left label-tier-standard';
       labelLeft.textContent = row;
+      labelLeft.dataset.row = row;
+      labelLeft.title = `แถว ${row} (คลิกดูสรุปแถว)`;
       rowEl.appendChild(labelLeft);
 
       const leftBlock = document.createElement('div');
@@ -1271,8 +1960,10 @@ function renderSeatsGrid() {
       rowEl.appendChild(rightBlock);
 
       const labelRight = document.createElement('div');
-      labelRight.className = 'row-label';
+      labelRight.className = 'row-label label-right label-tier-standard';
       labelRight.textContent = row;
+      labelRight.dataset.row = row;
+      labelRight.title = `แถว ${row} (คลิกดูสรุปแถว)`;
       rowEl.appendChild(labelRight);
       container.appendChild(rowEl);
     });
@@ -1292,13 +1983,11 @@ function createSeatButtonPavalai(seatData, rowData, seatsMap) {
 
   const guest = seatsMap[seatId];
   const zone = getSeatZone(seatData.row, seatData.category);
-  const isCheckedIn = !!(guest && guest.attended);
+  const isCheckedIn = !!(guest && (guest.isSeatCheckedIn !== undefined ? guest.isSeatCheckedIn : guest.attended));
   const isVip = seatData.category === 'vip' || (guest && guest.guestType === 'vip');
-  const isSweet = isSweetSpotSeat(seatData.row, seatData.num);
 
   btn.dataset.zone = rowData.zone || '';
   btn.dataset.tier = rowData.tier || '';
-  btn.dataset.isSweet = isSweet ? 'true' : 'false';
   btn.dataset.rowLabel = rowData.label || '';
 
   if (isVip) {
@@ -1314,7 +2003,20 @@ function createSeatButtonPavalai(seatData, rowData, seatsMap) {
     } else {
       btn.classList.add('seat-creator-booked');
     }
+
+    // Apply Seat Category Color (Single source of truth via seatCategoryColors.js)
+    const catInfo = (state.seatColors && state.seatColors[seatId]) ||
+      (typeof SeatCategoryColors !== 'undefined' ? SeatCategoryColors.getSeatCategoryInfo(guest.pic) : null);
+    if (catInfo && !catInfo.isDefault) {
+      btn.style.setProperty('--seat-category-color', catInfo.color);
+      btn.style.setProperty('--seat-category-text', catInfo.textColor || '#ffffff');
+      btn.classList.add('has-category-color');
+      btn.dataset.categoryKey = catInfo.key;
+    } else {
+      btn.dataset.categoryKey = 'other';
+    }
   } else {
+    btn.dataset.categoryKey = 'empty';
     if (seatData.category === 'vip') btn.classList.add('seat-vip-empty');
     else if (seatData.category === 'privilege') btn.classList.add('seat-press-empty');
     else if (seatData.category === 'balcony') btn.classList.add('seat-balcony-empty');
@@ -1324,8 +2026,7 @@ function createSeatButtonPavalai(seatData, rowData, seatsMap) {
   // Active seat filter dimming
   if (state.activeSeatFilter !== 'all') {
     let match = true;
-    if (state.activeSeatFilter === 'sweet-spot') match = isSweet;
-    else if (state.activeSeatFilter === 'vip') match = isVip;
+    if (state.activeSeatFilter === 'vip') match = isVip;
     else if (state.activeSeatFilter === 'press') match = (seatData.category === 'privilege' || (guest && guest.guestType === 'press'));
     else if (state.activeSeatFilter === 'creator') match = (seatData.category === 'standard' || (guest && guest.guestType === 'creator'));
     else if (state.activeSeatFilter === 'checked-in') match = isCheckedIn;
@@ -1336,12 +2037,20 @@ function createSeatButtonPavalai(seatData, rowData, seatsMap) {
     }
   }
 
+  // Active category filter dimming
+  if (state.activeCategoryFilter && state.activeCategoryFilter !== 'all') {
+    if (btn.dataset.categoryKey !== state.activeCategoryFilter) {
+      btn.classList.add('seat-cat-dimmed');
+    }
+  }
+
   if (state.selectedSeat === seatId) {
     btn.classList.add('selected');
   }
 
   if (isCheckedIn) {
     btn.classList.add('is-checked-in');
+    btn.classList.add('seat-checked-in');
   }
 
   btn.innerHTML = `<span class="seat-num">${seatData.num}</span>`;
@@ -1357,12 +2066,10 @@ function createSeatButton(row, col, seatsMap) {
 
   const guest = seatsMap[seatId];
   const zone = getSeatZone(row);
-  const isCheckedIn = !!(guest && guest.attended);
+  const isCheckedIn = !!(guest && (guest.isSeatCheckedIn !== undefined ? guest.isSeatCheckedIn : guest.attended));
   const isVip = zone === 'vip' || (guest && guest.guestType === 'vip');
-  const isSweet = isSweetSpotSeat(row, col);
 
   btn.dataset.zone = zone || '';
-  btn.dataset.isSweet = isSweet ? 'true' : 'false';
   btn.dataset.rowLabel = row;
 
   if (isVip) btn.classList.add('vip-recliner');
@@ -1371,7 +2078,19 @@ function createSeatButton(row, col, seatsMap) {
     if (isVip) btn.classList.add('seat-vip-booked');
     else if (guest.guestType === 'press' || zone === 'press') btn.classList.add('seat-press-booked');
     else btn.classList.add('seat-creator-booked');
+
+    const catInfo = (state.seatColors && state.seatColors[seatId]) ||
+      (typeof SeatCategoryColors !== 'undefined' ? SeatCategoryColors.getSeatCategoryInfo(guest.pic) : null);
+    if (catInfo && !catInfo.isDefault) {
+      btn.style.setProperty('--seat-category-color', catInfo.color);
+      btn.style.setProperty('--seat-category-text', catInfo.textColor || '#ffffff');
+      btn.classList.add('has-category-color');
+      btn.dataset.categoryKey = catInfo.key;
+    } else {
+      btn.dataset.categoryKey = 'other';
+    }
   } else {
+    btn.dataset.categoryKey = 'empty';
     if (zone === 'vip') btn.classList.add('seat-vip-empty');
     else if (zone === 'press') btn.classList.add('seat-press-empty');
     else btn.classList.add('seat-creator-empty');
@@ -1379,8 +2098,7 @@ function createSeatButton(row, col, seatsMap) {
 
   if (state.activeSeatFilter !== 'all') {
     let match = true;
-    if (state.activeSeatFilter === 'sweet-spot') match = isSweet;
-    else if (state.activeSeatFilter === 'vip') match = isVip;
+    if (state.activeSeatFilter === 'vip') match = isVip;
     else if (state.activeSeatFilter === 'press') match = (zone === 'press' || (guest && guest.guestType === 'press'));
     else if (state.activeSeatFilter === 'creator') match = (zone === 'creator' || (guest && guest.guestType === 'creator'));
     else if (state.activeSeatFilter === 'checked-in') match = isCheckedIn;
@@ -1389,8 +2107,15 @@ function createSeatButton(row, col, seatsMap) {
     if (!match) btn.classList.add('seat-dimmed');
   }
 
+  if (state.activeCategoryFilter && state.activeCategoryFilter !== 'all') {
+    if (btn.dataset.categoryKey !== state.activeCategoryFilter) {
+      btn.classList.add('seat-cat-dimmed');
+    }
+  }
+
   if (isCheckedIn) {
     btn.classList.add('is-checked-in');
+    btn.classList.add('seat-checked-in');
   }
 
   btn.innerHTML = `<span class="seat-num">${col}</span>`;
@@ -1399,28 +2124,108 @@ function createSeatButton(row, col, seatsMap) {
 }
 
 // Floating Tooltip Helpers
-function showSeatHoverTooltip(e, seatId, guest, zone, isSweet, seatData) {
+let hideTooltipTimer = null;
+
+function computeTooltipPlacementAndCoords(seatRect, cardSize, viewportSize, offset = 8, padding = 10) {
+  const cardW = (cardSize && cardSize.width) || 280;
+  const cardH = (cardSize && cardSize.height) || 130;
+  const vpWidth = (viewportSize && viewportSize.width) || (typeof window !== 'undefined' ? window.innerWidth : 1280);
+  const vpHeight = (viewportSize && viewportSize.height) || (typeof window !== 'undefined' ? window.innerHeight : 800);
+
+  const seatCenterX = seatRect.left + (seatRect.width / 2);
+
+  // Default placement: below the seat (+8px offset) as specified by user
+  let placement = 'bottom';
+  let top = seatRect.bottom + offset;
+
+  // Collision detection: if overflowing bottom of viewport, flip above the seat
+  if (top + cardH > vpHeight - padding) {
+    top = seatRect.top - cardH - offset;
+    placement = 'top';
+  }
+
+  // If top overflows top edge of viewport (e.g. small screen or high row)
+  if (top < padding) {
+    const spaceAbove = seatRect.top;
+    const spaceBelow = vpHeight - seatRect.bottom;
+    if (spaceBelow >= spaceAbove) {
+      top = Math.max(padding, Math.min(seatRect.bottom + offset, vpHeight - cardH - padding));
+      placement = 'bottom';
+    } else {
+      top = Math.max(padding, seatRect.top - cardH - offset);
+      placement = 'top';
+    }
+  }
+
+  // Horizontal placement: centered on seat
+  let left = seatCenterX - (cardW / 2);
+
+  // Clamp horizontal boundaries within viewport
+  if (left < padding) {
+    left = padding;
+  } else if (left + cardW > vpWidth - padding) {
+    left = vpWidth - cardW - padding;
+  }
+
+  // Pointer arrow aligns with seat center
+  const arrowX = Math.max(14, Math.min(cardW - 14, seatCenterX - left));
+
+  return {
+    placement,
+    top: Math.round(top),
+    left: Math.round(left),
+    arrowX: Math.round(arrowX)
+  };
+}
+
+function showSeatHoverTooltip(e, seatId, guest, zone, seatData) {
   const card = document.getElementById('seatHoverCard');
   if (!card) return;
+
+  // Portal Pattern: Ensure seatHoverCard is a direct child of document.body
+  // to avoid containing block mismatch from any CSS transforms on ancestors
+  if (card.parentElement !== document.body) {
+    document.body.appendChild(card);
+  }
+
+  if (hideTooltipTimer) {
+    clearTimeout(hideTooltipTimer);
+    hideTooltipTimer = null;
+  }
+
+  const seatBtn = (e && e.nodeType === 1)
+    ? (e.closest('.cinema-seat') || e)
+    : (e && e.target && e.target.closest)
+      ? e.target.closest('.cinema-seat')
+      : null;
 
   const zoneLabel = seatData ? seatData.zone : getSeatZoneLabel(zone);
   const tierLabel = seatData ? (seatData.tier === 'balcony' ? 'ชั้นลอย Balcony' : 'ชั้นล่าง Stalls') : '';
   let html = '';
 
   if (guest) {
-    const isCheckedIn = !!guest.attended;
+    const isCheckedIn = !!(guest && (guest.isSeatCheckedIn !== undefined ? guest.isSeatCheckedIn : guest.attended));
     const zoneBadgeColor = zone === 'vip' ? 'var(--color-gold)' : zone === 'press' ? 'var(--color-teal)' : 'var(--color-pink)';
     const zoneBadgeBg = zone === 'vip' ? 'var(--color-gold-bg)' : zone === 'press' ? 'var(--color-teal-bg)' : 'var(--color-pink-bg)';
+    const catInfo = (state.seatColors && state.seatColors[seatId]) ||
+      (typeof SeatCategoryColors !== 'undefined' ? SeatCategoryColors.getSeatCategoryInfo(guest.pic) : null);
+    const catName = (catInfo && !catInfo.isDefault) ? catInfo.name : (guest.pic || 'อื่นๆ / ไม่ระบุ');
+    const catColor = (catInfo && !catInfo.isDefault) ? catInfo.color : '#64748b';
 
     html = `
       <div class="hover-card-header">
         <span class="hover-seat-badge" style="background: ${zoneBadgeBg}; color: ${zoneBadgeColor};">
-          ที่นั่ง ${seatId} ${tierLabel ? `· ${tierLabel}` : ''} · ${zoneLabel} ${isSweet ? '· 🎯 Sweet Spot' : ''}
+          ที่นั่ง ${seatId} ${tierLabel ? `· ${tierLabel}` : ''} · ${zoneLabel}
         </span>
         <span class="hover-checkin-badge ${isCheckedIn ? 'yes' : 'no'}">
           <i class="fa-solid ${isCheckedIn ? 'fa-circle-check' : 'fa-clock'}"></i>
           ${isCheckedIn ? 'เซ็นแล้ว ✓' : 'รอเซ็น'}
         </span>
+      </div>
+      <div class="hover-seat-cat-row" style="margin: 5px 0 6px 0; font-size: 11px; display: flex; align-items: center; gap: 6px;">
+        <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: ${catColor}; box-shadow: 0 0 4px ${catColor}; flex-shrink: 0;"></span>
+        <span style="color: var(--text-muted);">หมวดหมู่ (PIC):</span>
+        <strong style="color: #ffffff; background: rgba(255,255,255,0.08); padding: 1px 6px; border-radius: 4px; font-weight: 600;">${escapeHtml(catName)}</strong>
       </div>
       <div class="hover-guest-name">${escapeHtml(guest.name)}</div>
       <div class="hover-guest-org"><i class="fa-solid fa-building" style="font-size: 11px; margin-right: 4px; color: var(--color-gold);"></i>${escapeHtml(guest.organization || 'ไม่ระบุสื่อ')}</div>
@@ -1434,7 +2239,7 @@ function showSeatHoverTooltip(e, seatId, guest, zone, isSweet, seatData) {
     html = `
       <div class="hover-card-header">
         <span class="hover-seat-badge" style="background: rgba(255,255,255,0.08); color: #fff;">
-          ที่นั่ง ${seatId} ${tierLabel ? `· ${tierLabel}` : ''} · ${zoneLabel} ${isSweet ? '· 🎯 Sweet Spot' : ''}
+          ที่นั่ง ${seatId} ${tierLabel ? `· ${tierLabel}` : ''} · ${zoneLabel}
         </span>
         <span class="hover-checkin-badge no">ที่นั่งว่าง</span>
       </div>
@@ -1444,34 +2249,102 @@ function showSeatHoverTooltip(e, seatId, guest, zone, isSweet, seatData) {
 
   card.innerHTML = html;
   card.classList.remove('hidden');
-  card._cachedH = card.offsetHeight; // Cache to avoid reflow on mousemove
-  updateSeatHoverTooltipPosition(e);
+  card._currentSeatId = seatId;
+  card._currentSeatBtn = seatBtn;
+
+  if (!card._eventsAttached) {
+    card._eventsAttached = true;
+    card.addEventListener('mouseenter', () => {
+      if (hideTooltipTimer) {
+        clearTimeout(hideTooltipTimer);
+        hideTooltipTimer = null;
+      }
+    });
+    card.addEventListener('mouseleave', () => {
+      hideSeatHoverTooltip(true);
+    });
+  }
+
+  updateSeatHoverTooltipPosition(seatBtn || e);
 }
 
 function updateSeatHoverTooltipPosition(e) {
   const card = document.getElementById('seatHoverCard');
   if (!card || card.classList.contains('hidden')) return;
 
-  const cardW = 270;
-  const cardH = card._cachedH || 130;
-  let left = e.clientX + 16;
-  let top = e.clientY - (cardH / 2);
-
-  if (left + cardW > window.innerWidth - 12) {
-    left = e.clientX - cardW - 16;
-  }
-  if (top < 12) top = 12;
-  if (top + cardH > window.innerHeight - 12) {
-    top = window.innerHeight - cardH - 12;
+  // Portal Pattern check
+  if (card.parentElement !== document.body) {
+    document.body.appendChild(card);
   }
 
-  card.style.left = `${left}px`;
-  card.style.top = `${top}px`;
+  const seatBtn = (e && e.nodeType === 1)
+    ? (e.closest('.cinema-seat') || e)
+    : (e && e.target && e.target.closest)
+      ? e.target.closest('.cinema-seat')
+      : card._currentSeatBtn;
+
+  if (!seatBtn || typeof seatBtn.getBoundingClientRect !== 'function') return;
+
+  const vpWidth = window.innerWidth;
+  const vpHeight = window.innerHeight;
+  const OFFSET = 8;
+  const PADDING = 10;
+
+  const seatRect = seatBtn.getBoundingClientRect();
+
+  // If seat has scrolled off screen, hide tooltip
+  if (seatRect.bottom < 0 || seatRect.top > vpHeight || seatRect.right < 0 || seatRect.left > vpWidth) {
+    hideSeatHoverTooltip(true);
+    return;
+  }
+
+  const cardW = card.offsetWidth || 280;
+  const cardH = card.offsetHeight || 130;
+
+  const pos = computeTooltipPlacementAndCoords(
+    seatRect,
+    { width: cardW, height: cardH },
+    { width: vpWidth, height: vpHeight },
+    OFFSET,
+    PADDING
+  );
+
+  if (pos.placement === 'top') {
+    card.classList.remove('placement-bottom', 'arrow-top');
+    card.classList.add('placement-top', 'arrow-bottom');
+  } else {
+    card.classList.remove('placement-top', 'arrow-bottom');
+    card.classList.add('placement-bottom', 'arrow-top');
+  }
+
+  card.style.position = 'fixed';
+  card.style.setProperty('--arrow-x', `${pos.arrowX}px`);
+  card.style.left = `${pos.left}px`;
+  card.style.top = `${pos.top}px`;
 }
 
-function hideSeatHoverTooltip() {
+function hideSeatHoverTooltip(immediate = false) {
   const card = document.getElementById('seatHoverCard');
-  if (card) card.classList.add('hidden');
+  if (!card) return;
+
+  if (immediate) {
+    if (hideTooltipTimer) {
+      clearTimeout(hideTooltipTimer);
+      hideTooltipTimer = null;
+    }
+    card.classList.add('hidden');
+    card._currentSeatId = null;
+    card._currentSeatBtn = null;
+    return;
+  }
+
+  if (hideTooltipTimer) clearTimeout(hideTooltipTimer);
+  hideTooltipTimer = setTimeout(() => {
+    card.classList.add('hidden');
+    card._currentSeatId = null;
+    card._currentSeatBtn = null;
+    hideTooltipTimer = null;
+  }, 120);
 }
 
 // Seat Details Panel Display (Right Sidebar)
@@ -1502,17 +2375,27 @@ function showSeatDetails(seatId) {
   const seatNum = seatMeta ? seatMeta.num : seatId.slice(1);
   const tierName = seatMeta ? (seatMeta.tier === 'balcony' ? 'ชั้นลอย Royal Balcony' : 'ชั้นล่าง Grand Stalls') : 'โรง 4 Pavalai';
   const zoneName = seatMeta ? seatMeta.zone : getSeatZoneLabel(getSeatZone(rowLabel));
-  const isSweet = isSweetSpotSeat(rowLabel, parseInt(seatNum, 10));
 
   if (guest) {
-    const isCheckedIn = !!guest.attended;
+    const isSeatChecked = !!(guest.isSeatCheckedIn !== undefined ? guest.isSeatCheckedIn : guest.attended);
+    const hasMultipleSeats = (guest.participant > 1) || (Array.isArray(guest.seats) && guest.seats.length > 1);
+    const totalCount = (Array.isArray(guest.seats) && guest.seats.length > 0) ? guest.seats.length : (guest.participant || 1);
+    const attendedCount = (Array.isArray(guest.seats) && guest.seats.length > 0)
+      ? guest.seats.filter(s => typeof s === 'object' ? s.checkedIn : false).length
+      : (guest.attendedCount || (guest.attended ? totalCount : 0));
+
+    const catInfo = (state.seatColors && state.seatColors[seatId]) ||
+      (typeof SeatCategoryColors !== 'undefined' ? SeatCategoryColors.getSeatCategoryInfo(guest.pic) : null);
+    const catName = (catInfo && !catInfo.isDefault) ? catInfo.name : (guest.pic || 'ไม่ระบุหมวดหมู่');
+    const catColor = (catInfo && !catInfo.isDefault) ? catInfo.color : '#94a3b8';
+
     content.innerHTML = `
       <div class="panel-header">
         <span class="panel-seat-badge vip">
           ที่นั่ง ${seatId} · ${tierName}
         </span>
         <div style="font-size: 12px; color: var(--color-gold); margin-top: 4px; font-weight: 600;">
-          <i class="fa-solid fa-couch"></i> โซน ${zoneName} ${isSweet ? '· 🎯 Sweet Spot' : ''}
+          <i class="fa-solid fa-couch"></i> โซน ${zoneName}
         </div>
         <div class="panel-guest-name" style="margin-top: 10px;">${escapeHtml(guest.name)}</div>
         <div class="panel-guest-org"><i class="fa-solid fa-building"></i> ${escapeHtml(guest.organization || 'ไม่ระบุสื่อ')}</div>
@@ -1520,11 +2403,16 @@ function showSeatDetails(seatId) {
 
       <!-- Quick Live Sign Check-In Action -->
       <div class="detail-section">
-        <div class="section-label">Sign (สถานะเช็คอินหน้างาน)</div>
-        <button class="btn-checkin-toggle ${isCheckedIn ? 'checked-in' : 'not-checked'}" onclick="toggleGuestCheckIn('${guest.id}')" style="width: 100%; justify-content: center; padding: 10px; font-size: 13px;">
-          <i class="fa-solid ${isCheckedIn ? 'fa-circle-check' : 'fa-circle-dot'}"></i>
-          <span>${isCheckedIn ? 'เซ็นชื่อเช็คอินแล้ว ✓ (คลิกเพื่อยกเลิก)' : 'คลิกเพื่อเซ็นชื่อเช็คอิน (Sign)'}</span>
+        <div class="section-label">Sign (สถานะเช็คอินที่นั่ง ${seatId})</div>
+        <button class="btn-checkin-toggle ${isSeatChecked ? 'checked-in' : 'not-checked'}" onclick="toggleSeatCheckIn('${guest.id}', '${seatId}')" style="width: 100%; justify-content: center; padding: 10px; font-size: 13px;">
+          <i class="fa-solid ${isSeatChecked ? 'fa-circle-check' : 'fa-circle-dot'}"></i>
+          <span>${isSeatChecked ? `ที่นั่ง ${seatId} เช็คอินแล้ว ✓ (คลิกเพื่อยกเลิก)` : `คลิกเพื่อเช็คอินที่นั่ง ${seatId} (Sign)`}</span>
         </button>
+        ${hasMultipleSeats ? `
+          <button class="btn btn-secondary" onclick="openPartialCheckInModalById('${guest.id}')" style="width: 100%; justify-content: center; margin-top: 8px; font-size: 12px; color: var(--color-teal); border-color: rgba(45, 212, 191, 0.4);">
+            <i class="fa-solid fa-users-viewfinder"></i> เช็คอินแบบเลือกที่นั่ง (${attendedCount}/${totalCount} ท่าน)
+          </button>
+        ` : ''}
       </div>
 
       <!-- Core Guest Info: Media, Name, Participant, Seat, Tel -->
@@ -1532,6 +2420,15 @@ function showSeatDetails(seatId) {
         <div class="section-label">ข้อมูลแขกและที่นั่ง</div>
         <div class="contact-item"><i class="fa-solid fa-building" style="color: var(--color-gold);"></i> <strong>Media:</strong> ${escapeHtml(guest.organization || '-')}</div>
         <div class="contact-item"><i class="fa-solid fa-user" style="color: #60a5fa;"></i> <strong>Name:</strong> ${escapeHtml(guest.name || '-')}</div>
+        <div class="contact-item">
+          <i class="fa-solid fa-tag" style="color: ${catColor};"></i> <strong>หมวดหมู่ (PIC):</strong>
+          <span class="pic-badge" style="background: ${catColor}22; color: ${catColor}; border: 1px solid ${catColor}66; font-weight: 600;">
+            ${escapeHtml(catName)}
+          </span>
+        </div>
+        ${guest.follower !== null && guest.follower !== undefined ? `
+          <div class="contact-item"><i class="fa-solid fa-users-viewfinder" style="color: #60a5fa;"></i> <strong>Follower:</strong> ${Number(guest.follower).toLocaleString()}</div>
+        ` : ''}
         <div class="contact-item"><i class="fa-solid fa-users" style="color: var(--color-gold);"></i> <strong>Participant:</strong> ${guest.participant || 1} ท่าน</div>
         <div class="contact-item"><i class="fa-solid fa-couch" style="color: var(--color-teal);"></i> <strong>Seat ที่จัดไว้:</strong> ${escapeHtml(guest.seat || seatId)}</div>
         <div class="contact-item">
@@ -1566,7 +2463,7 @@ function showSeatDetails(seatId) {
           ที่นั่ง ${seatId} · ${tierName}
         </span>
         <div style="font-size: 12px; color: var(--color-gold); margin-top: 4px; font-weight: 600;">
-          <i class="fa-solid fa-couch"></i> โซน ${zoneName} ${isSweet ? '· 🎯 Sweet Spot' : ''}
+          <i class="fa-solid fa-couch"></i> โซน ${zoneName}
         </div>
         <div class="panel-guest-name" style="margin-top: 10px; color: var(--text-muted); font-size: 16px;">
           <i class="fa-solid fa-couch"></i> ที่นั่งว่าง
@@ -1612,7 +2509,8 @@ window.toggleGuestCheckIn = async function(guestId, overrideOptions = {}) {
       attended: willBeAttended,
       attendedCount: overrideOptions.attendedCount,
       confirmedWarning: overrideOptions.confirmedWarning,
-      checkInAnyway: overrideOptions.checkInAnyway
+      checkInAnyway: overrideOptions.checkInAnyway,
+      action: willBeAttended ? 'check_in' : 'check_out'
     });
 
     if (res.requiresWarningConfirmation) {
@@ -1622,7 +2520,16 @@ window.toggleGuestCheckIn = async function(guestId, overrideOptions = {}) {
 
     if (res.success) {
       showToast(willBeAttended ? `เช็คอินคุณ ${guest.name} เรียบร้อยแล้ว 🎬` : `ยกเลิกการเช็คอินคุณ ${guest.name}`);
-      await refreshData();
+      
+      // Targeted DOM update for the guest's seats immediately without rebuilding 1,164 seats!
+      const guestSeats = Array.isArray(guest.seats)
+        ? guest.seats.map(s => typeof s === 'object' ? s.code : s)
+        : (guest.seat ? expandSeatRanges(guest.seat) : []);
+      updateSeatsCheckInDom(guestSeats, willBeAttended);
+
+      // Refresh overview counters and guest list table, but skip destroying the 1,164-seat grid!
+      await refreshData({ skipSeatsGrid: true });
+
       if (state.selectedSeat) showSeatDetails(state.selectedSeat);
       if (state.selectedGuestId) showGuestDetails(state.selectedGuestId);
     }
@@ -1635,6 +2542,49 @@ window.toggleGuestCheckIn = async function(guestId, overrideOptions = {}) {
       }
     }
     showToast('เกิดข้อผิดพลาดในการเช็คอิน: ' + err.message, 'error');
+  }
+};
+
+// Action: 1-Click Single Seat Check-In Toggle from Map
+window.toggleSeatCheckIn = async function(guestId, seatCode) {
+  try {
+    const res = await API.checkInSeat(guestId, seatCode);
+    if (res.success) {
+      // 1. Instant DOM mutation on seat element without full re-render
+      updateSeatsCheckInDom(seatCode, res.checkedIn);
+
+      // 2. Update local state
+      const gIdx = state.guests.findIndex(g => g.id === guestId);
+      if (gIdx !== -1) {
+        state.guests[gIdx] = res.data;
+      }
+
+      // 3. Update cached seats map
+      if (window._cachedSeatsMap && window._cachedSeatsMap[seatCode]) {
+        window._cachedSeatsMap[seatCode].isSeatCheckedIn = res.checkedIn;
+        window._cachedSeatsMap[seatCode].seatCheckedIn = res.checkedIn;
+      }
+
+      // 4. Update side panel if showing this seat
+      if (state.selectedSeat === seatCode) {
+        showSeatDetails(seatCode);
+      }
+
+      // 5. Update guest table row
+      renderGuestTable();
+
+      // 6. Refresh overview cinema stats in background
+      API.fetchJSON(`/api/stats/overview-cinema${state.activeScreeningId ? '?screeningId=' + state.activeScreeningId : ''}`).then(oRes => {
+        if (oRes.success) {
+          state.overview = oRes.data;
+          renderOverview();
+        }
+      });
+
+      showToast(res.message || (res.checkedIn ? `เช็คอินที่นั่ง ${seatCode} สำเร็จ 🎬` : `ยกเลิกเช็คอินที่นั่ง ${seatCode}`));
+    }
+  } catch (err) {
+    showToast('ไม่สามารถเช็คอินที่นั่งได้: ' + err.message, 'error');
   }
 };
 
@@ -1688,34 +2638,92 @@ window.viewGuestInList = function(guestId) {
 };
 
 // ================= 3. GUEST LIST VIEW =================
+function validatePhone(phoneStr) {
+  if (!phoneStr || phoneStr.trim() === '') return { valid: true };
+  const val = phoneStr.trim().replace(/[-\s]/g, '');
+  if (!/^0\d{9}$/.test(val) && !/^\d{10}$/.test(val)) {
+    return { valid: false, message: 'เบอร์โทรต้องเป็นตัวเลข 10 หลัก (เช่น 0812345678)' };
+  }
+  return { valid: true, cleanPhone: val };
+}
+function validatePhone12(phoneStr) {
+  return validatePhone(phoneStr);
+}
+window.validatePhone = validatePhone;
+window.validatePhone12 = validatePhone;
+
 function renderGuestTable() {
   const tbody = document.getElementById('guestTableBody');
   if (!tbody) return;
 
   tbody.innerHTML = '';
 
+  const isGuestChecked = (g) => {
+    if (g.checkInStatus === 'complete' || g.checkInStatus === 'partial') return true;
+    if (g.attended) return true;
+    if (Array.isArray(g.seats) && g.seats.some(s => s.checkedIn)) return true;
+    return (g.attendedCount > 0);
+  };
+
+  // 1. Update Tab Badge Counts across all guests in current screening
+  const countAll = state.guests.length;
+  const countUnassigned = state.guests.filter(g => !g.seat || g.seat.trim() === '').length;
+  const countAssigned = state.guests.filter(g => !!g.seat && g.seat.trim() !== '').length;
+  const countCheckedIn = state.guests.filter(isGuestChecked).length;
+  const countNotChecked = state.guests.filter(g => !isGuestChecked(g)).length;
+
+  const elCountAll = document.getElementById('tabCountAll');
+  const elCountUnassigned = document.getElementById('tabCountUnassigned');
+  const elCountAssigned = document.getElementById('tabCountAssigned');
+  const elCountCheckedIn = document.getElementById('tabCountCheckedIn');
+  const elCountNotChecked = document.getElementById('tabCountNotChecked');
+
+  if (elCountAll) elCountAll.textContent = countAll;
+  if (elCountUnassigned) elCountUnassigned.textContent = countUnassigned;
+  if (elCountAssigned) elCountAssigned.textContent = countAssigned;
+  if (elCountCheckedIn) elCountCheckedIn.textContent = countCheckedIn;
+  if (elCountNotChecked) elCountNotChecked.textContent = countNotChecked;
+
+  // 2. Filter Guests
   let filtered = [...state.guests];
-  const { search, checkIn, seatStatus } = state.filters;
+  const { search, checkIn, seatStatus, tab, pic } = state.filters;
 
   if (search) {
     const q = search.toLowerCase().trim();
     filtered = filtered.filter(g =>
-      (g.organization && g.organization.toLowerCase().includes(q)) ||
       (g.name && g.name.toLowerCase().includes(q)) ||
+      (g.detail && g.detail.toLowerCase().includes(q)) ||
+      (g.organization && g.organization.toLowerCase().includes(q)) ||
+      (g.pic && g.pic.toLowerCase().includes(q)) ||
       (g.seat && g.seat.toLowerCase().includes(q)) ||
       (g.phone && g.phone.includes(q)) ||
       (g.participant && String(g.participant).includes(q))
     );
   }
 
-  if (checkIn && checkIn !== 'all') {
-    if (checkIn === 'checked-in') {
-      filtered = filtered.filter(g => !!g.attended);
-    } else if (checkIn === 'not-checked') {
-      filtered = filtered.filter(g => !g.attended);
+  // Quick Tab Filter
+  if (tab && tab !== 'all') {
+    if (tab === 'unassigned') {
+      filtered = filtered.filter(g => !g.seat || g.seat.trim() === '');
+    } else if (tab === 'assigned') {
+      filtered = filtered.filter(g => !!g.seat && g.seat.trim() !== '');
+    } else if (tab === 'checked-in') {
+      filtered = filtered.filter(isGuestChecked);
+    } else if (tab === 'not-checked') {
+      filtered = filtered.filter(g => !isGuestChecked(g));
     }
   }
 
+  // Dropdown Check-In Filter
+  if (checkIn && checkIn !== 'all') {
+    if (checkIn === 'checked-in') {
+      filtered = filtered.filter(isGuestChecked);
+    } else if (checkIn === 'not-checked') {
+      filtered = filtered.filter(g => !isGuestChecked(g));
+    }
+  }
+
+  // Dropdown Seat Status Filter
   if (seatStatus && seatStatus !== 'all') {
     if (seatStatus === 'assigned') {
       filtered = filtered.filter(g => !!g.seat && g.seat.trim() !== '');
@@ -1724,10 +2732,49 @@ function renderGuestTable() {
     }
   }
 
+  // Dropdown PIC Filter
+  if (pic && pic !== 'all') {
+    filtered = filtered.filter(g => g.pic === pic);
+  }
+
+  // Follower Sorting (desc / asc)
+  if (state.sortFollower === 'desc') {
+    filtered.sort((a, b) => (parseInt(b.follower, 10) || 0) - (parseInt(a.follower, 10) || 0));
+  } else if (state.sortFollower === 'asc') {
+    filtered.sort((a, b) => (parseInt(a.follower, 10) || 0) - (parseInt(b.follower, 10) || 0));
+  }
+
+  // 3. Pagination calculation
+  const totalItems = filtered.length;
+  const isShowAll = state.guestPageSize === 'all';
+  const pageSize = isShowAll ? totalItems : (state.guestPageSize || 25);
+  const totalPages = pageSize <= 0 ? 1 : Math.ceil(totalItems / pageSize) || 1;
+
+  if (state.guestPage > totalPages) state.guestPage = totalPages;
+  if (state.guestPage < 1) state.guestPage = 1;
+
+  const startIndex = isShowAll ? 0 : (state.guestPage - 1) * pageSize;
+  const endIndex = isShowAll ? totalItems : Math.min(startIndex + pageSize, totalItems);
+  const pageItems = isShowAll ? filtered : filtered.slice(startIndex, endIndex);
+
+  // Update Pagination Info Bar
+  const paginationInfo = document.getElementById('paginationInfo');
+  if (paginationInfo) {
+    if (totalItems === 0) {
+      paginationInfo.textContent = 'แสดงรายการที่ 0 - 0 จาก 0 รายการ';
+    } else {
+      paginationInfo.textContent = `แสดงรายการที่ ${startIndex + 1} - ${endIndex} จากทั้งหมด ${totalItems} รายการ`;
+    }
+  }
+
+  // Render Pagination Controls
+  renderGuestPagination(totalPages, state.guestPage);
+
   if (filtered.length === 0) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="6" style="text-align: center; padding: 40px; color: var(--text-dim);">
+        <td colspan="8" style="text-align: center; padding: 40px; color: var(--text-dim);">
+          <i class="fa-solid fa-inbox" style="font-size: 28px; margin-bottom: 8px; display: block; opacity: 0.5;"></i>
           ไม่พบข้อมูลแขกตามเงื่อนไขที่ค้นหาสำหรับรอบนี้
         </td>
       </tr>
@@ -1735,36 +2782,60 @@ function renderGuestTable() {
     return;
   }
 
-  filtered.forEach(guest => {
+  pageItems.forEach(guest => {
     const tr = document.createElement('tr');
     if (state.selectedGuestId === guest.id) {
       tr.classList.add('selected');
     }
 
+    const hasSeat = guest.seat && guest.seat.trim() !== '';
+
     tr.innerHTML = `
-      <td>
-        <span class="guest-media" style="font-weight: 600; color: #fff; font-size: 13.5px;">${escapeHtml(guest.organization || 'ไม่ระบุสื่อ')}</span>
+      <td class="col-guest-name">
+        <div class="guest-name-cell">
+          <span class="guest-name" title="${escapeHtml(guest.name || '-')}">${escapeHtml(guest.name || '-')}</span>
+          ${guest.organization ? `<span class="guest-org-subtitle" title="${escapeHtml(guest.organization)}">${escapeHtml(guest.organization)}</span>` : ''}
+          ${guest.source === 'walk_in' ? '<span class="badge" style="background: rgba(45, 212, 191, 0.15); color: var(--color-teal); font-size: 10px; padding: 1px 5px; border-radius: 4px; display: inline-block; margin-top: 2px;">Walk-in</span>' : ''}
+        </div>
       </td>
-      <td>
-        <span class="guest-name" style="font-size: 13px;">${escapeHtml(guest.name || '-')}</span>
+      <td class="col-guest-follower">
+        ${guest.follower != null ? guest.follower.toLocaleString() : '<span style="color: var(--text-dim);">-</span>'}
       </td>
-      <td style="text-align: center;">
-        <span class="badge-participant">${guest.participant || 1}</span>
+      <td class="col-guest-pic">
+        ${guest.pic ? `<span class="pic-badge" title="ผู้ดูแล: ${escapeHtml(guest.pic)}">${escapeHtml(guest.pic)}</span>` : '<span style="color: var(--text-dim);">-</span>'}
       </td>
-      <td>
-        <span class="seat-badge ${guest.seat ? 'assigned' : 'unassigned'}" title="${guest.seat ? 'ที่นั่งที่จัดสรร' : 'ยังไม่จัดที่นั่ง'}">
-          ${guest.seat ? escapeHtml(guest.seat) : 'ยังไม่จัด'}
+      <td class="col-guest-detail">
+        <span class="guest-detail-chip" title="${escapeHtml(guest.detail || guest.organization || '-')} (คลิกเพื่อดูรายละเอียดเต็มในแผงด้านขวา)">
+          <i class="fa-solid fa-align-left"></i>
+          <span class="detail-text">${escapeHtml(guest.detail ? guest.detail.replace(/\r?\n/g, ' · ') : (guest.organization || '-'))}</span>
         </span>
       </td>
-      <td style="text-align: center;">
-        ${renderCheckInButtonHtml(guest)}
+      <td class="col-guest-participant" style="text-align: center;">
+        <span class="badge-participant">${guest.participant || 1}</span>
       </td>
-      <td>
+      <td class="col-guest-seat">
+        ${hasSeat ? `
+          <span class="seat-badge assigned" title="ที่นั่งที่จัดสรร: ${escapeHtml(guest.seat)}">
+            <i class="fa-solid fa-chair" style="font-size: 11px; margin-right: 3px;"></i>${escapeHtml(guest.seat)}
+          </span>
+        ` : `
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <span class="seat-badge unassigned">ยังไม่จัด</span>
+            <button class="btn-table-assign" onclick="event.stopPropagation(); quickAssignGuest('${guest.id}')" title="จัดที่นั่งว่างติดกันให้แขกท่านนี้ด่วน">
+              <i class="fa-solid fa-wand-magic-sparkles"></i> จัดที่
+            </button>
+          </div>
+        `}
+      </td>
+      <td class="col-guest-tel">
         ${guest.phone ? `
           <a href="tel:${escapeHtml(guest.phone)}" class="tel-link" onclick="event.stopPropagation()">
             <i class="fa-solid fa-phone" style="font-size: 11px; margin-right: 4px; color: var(--color-gold);"></i>${escapeHtml(guest.phone)}
           </a>
         ` : '<span style="color: var(--text-dim);">-</span>'}
+      </td>
+      <td class="col-guest-sign" style="text-align: center;">
+        ${renderCheckInButtonHtml(guest)}
       </td>
     `;
 
@@ -1782,6 +2853,122 @@ function renderGuestTable() {
     showGuestDetails(state.selectedGuestId);
   }
 }
+
+function renderGuestPagination(totalPages, currentPage) {
+  const container = document.getElementById('paginationControls');
+  if (!container) return;
+  container.innerHTML = '';
+
+  if (totalPages <= 1) return;
+
+  // Prev Button
+  const btnPrev = document.createElement('button');
+  btnPrev.className = 'pagination-btn';
+  btnPrev.disabled = currentPage <= 1;
+  btnPrev.innerHTML = '<i class="fa-solid fa-chevron-left"></i>';
+  btnPrev.title = 'หน้าก่อนหน้า';
+  btnPrev.addEventListener('click', () => {
+    if (state.guestPage > 1) {
+      state.guestPage--;
+      renderGuestTable();
+    }
+  });
+  container.appendChild(btnPrev);
+
+  // Smart Pagination Range
+  const maxButtons = 5;
+  let startPage = Math.max(1, currentPage - 2);
+  let endPage = Math.min(totalPages, startPage + maxButtons - 1);
+  if (endPage - startPage < maxButtons - 1) {
+    startPage = Math.max(1, endPage - maxButtons + 1);
+  }
+
+  if (startPage > 1) {
+    const btnFirst = document.createElement('button');
+    btnFirst.className = 'pagination-btn';
+    btnFirst.textContent = '1';
+    btnFirst.addEventListener('click', () => {
+      state.guestPage = 1;
+      renderGuestTable();
+    });
+    container.appendChild(btnFirst);
+
+    if (startPage > 2) {
+      const dots = document.createElement('span');
+      dots.className = 'pagination-dots';
+      dots.textContent = '...';
+      container.appendChild(dots);
+    }
+  }
+
+  for (let p = startPage; p <= endPage; p++) {
+    const btn = document.createElement('button');
+    btn.className = `pagination-btn ${p === currentPage ? 'active' : ''}`;
+    btn.textContent = p;
+    const targetPage = p;
+    btn.addEventListener('click', () => {
+      state.guestPage = targetPage;
+      renderGuestTable();
+    });
+    container.appendChild(btn);
+  }
+
+  if (endPage < totalPages) {
+    if (endPage < totalPages - 1) {
+      const dots = document.createElement('span');
+      dots.className = 'pagination-dots';
+      dots.textContent = '...';
+      container.appendChild(dots);
+    }
+    const btnLast = document.createElement('button');
+    btnLast.className = 'pagination-btn';
+    btnLast.textContent = totalPages;
+    btnLast.addEventListener('click', () => {
+      state.guestPage = totalPages;
+      renderGuestTable();
+    });
+    container.appendChild(btnLast);
+  }
+
+  // Next Button
+  const btnNext = document.createElement('button');
+  btnNext.className = 'pagination-btn';
+  btnNext.disabled = currentPage >= totalPages;
+  btnNext.innerHTML = '<i class="fa-solid fa-chevron-right"></i>';
+  btnNext.title = 'หน้าถัดไป';
+  btnNext.addEventListener('click', () => {
+    if (state.guestPage < totalPages) {
+      state.guestPage++;
+      renderGuestTable();
+    }
+  });
+  container.appendChild(btnNext);
+}
+
+// 1-Click Quick Contiguous Auto-Assign for single guest
+window.quickAssignGuest = async function(guestId) {
+  const guest = state.guests.find(g => g.id === guestId);
+  if (!guest) return;
+
+  const quota = guest.participant || 1;
+  if (!confirm(`จัดที่นั่งว่างติดกันอัตโนมัติให้ "${guest.name || guest.detail}" (${quota} ที่นั่ง) หรือไม่?`)) {
+    return;
+  }
+
+  try {
+    const res = await API.autoAssignSeats(state.activeScreeningId, [guestId]);
+    if (res.success && res.assignedCount > 0) {
+      showToast(`จัดที่นั่งให้ ${guest.name} เรียบร้อยแล้ว 🎬`);
+      await refreshData();
+      state.selectedGuestId = guestId;
+      showGuestDetails(guestId);
+    } else {
+      showToast(res.message || 'ไม่พบที่นั่งว่างติดกันเพียงพอ กรุณาเลือกที่นั่งในแผนผัง', 'error');
+    }
+  } catch (err) {
+    showToast('เกิดข้อผิดพลาด: ' + err.message, 'error');
+  }
+};
 
 
 function showGuestDetails(guestId) {
@@ -1802,7 +2989,7 @@ function showGuestDetails(guestId) {
   content.innerHTML = `
     <div class="panel-header">
       <span class="panel-seat-badge vip" style="font-size: 12px;">
-        <i class="fa-solid fa-building"></i> ${escapeHtml(guest.organization || 'สื่อมวลชน')}
+        <i class="fa-solid fa-tag"></i> ${escapeHtml(guest.detail || guest.organization || 'ทั่วไป')}
       </span>
       <div class="panel-guest-name" style="margin-top: 6px;">${escapeHtml(guest.name || '-')}</div>
       <div style="color: var(--color-gold); font-size: 13px; margin-top: 4px; font-weight: 600;">
@@ -1827,15 +3014,25 @@ function showGuestDetails(guestId) {
       </div>
     </div>
 
-    <!-- Form: Edit 6 Core Fields -->
-    <div class="detail-section">
-      <label class="section-label" for="guestDetailMedia">Media (สื่อ / สังกัด / เพจ)</label>
-      <input type="text" id="guestDetailMedia" class="screening-select" style="width: 100%; max-width: 100%;" value="${escapeHtml(guest.organization || '')}" placeholder="เช่น akai peanut, Akibatan">
-    </div>
-
+    <!-- Form: Edit Core Fields (Name, Detail, Participant, Seat, Tel) -->
     <div class="detail-section">
       <label class="section-label" for="guestDetailName">Name (ชื่อแขก / ผู้ติดต่อ)</label>
       <input type="text" id="guestDetailName" class="screening-select" style="width: 100%; max-width: 100%;" value="${escapeHtml(guest.name || '')}" placeholder="ชื่อแขก">
+    </div>
+
+    <div class="detail-section">
+      <label class="section-label" for="guestDetailFollower">Follower (จำนวนผู้ติดตาม)</label>
+      <input type="number" id="guestDetailFollower" class="screening-select" style="width: 100%; max-width: 100%;" value="${guest.follower != null ? guest.follower : ''}" placeholder="เช่น 1200000" min="0">
+    </div>
+
+    <div class="detail-section">
+      <label class="section-label" for="guestDetailPic">PIC (ผู้ดูแล/ผู้ประสานงาน)</label>
+      <input type="text" id="guestDetailPic" class="screening-select" style="width: 100%; max-width: 100%;" value="${escapeHtml(guest.pic || '')}" placeholder="เช่น Ani Network">
+    </div>
+
+    <div class="detail-section">
+      <label class="section-label" for="guestDetailMedia">Detail (รายละเอียด / สังกัด)</label>
+      <textarea id="guestDetailMedia" class="screening-select" style="width: 100%; max-width: 100%; min-height: 80px; resize: vertical; font-size: 12.5px; line-height: 1.5; padding: 8px;" placeholder="เช่น โกดังหนัง, สื่อมวลชน, บุคคลภายนอก">${escapeHtml(guest.detail || guest.organization || '')}</textarea>
     </div>
 
     <div class="detail-section">
@@ -1882,20 +3079,55 @@ function showGuestDetails(guestId) {
 }
 
 window.saveGuestChanges = async function(guestId) {
-  const mediaInput = document.getElementById('guestDetailMedia');
   const nameInput = document.getElementById('guestDetailName');
+  const mediaInput = document.getElementById('guestDetailMedia');
+  const followerInput = document.getElementById('guestDetailFollower');
+  const picInput = document.getElementById('guestDetailPic');
   const participantInput = document.getElementById('guestDetailParticipant');
   const seatInput = document.getElementById('guestDetailSeatInput');
   const phoneInput = document.getElementById('guestDetailPhoneInput');
+
+  // Phone 10-digit validation
+  if (phoneInput) {
+    const phoneVal = phoneInput.value.trim();
+    const phoneValidation = validatePhone(phoneVal);
+    // Show or hide inline error (inject dynamically under the phone input)
+    let detailPhoneErr = document.getElementById('guestDetailPhoneError');
+    if (!detailPhoneErr) {
+      detailPhoneErr = document.createElement('div');
+      detailPhoneErr.id = 'guestDetailPhoneError';
+      detailPhoneErr.className = 'form-input-error hidden';
+      detailPhoneErr.innerHTML = '<i class="fa-solid fa-circle-exclamation"></i> เบอร์โทรต้องเป็นตัวเลข 10 หลัก (เช่น 0812345678)';
+      phoneInput.parentNode.insertBefore(detailPhoneErr, phoneInput.nextSibling);
+    }
+    if (!phoneValidation.valid) {
+      detailPhoneErr.classList.remove('hidden');
+      phoneInput.focus();
+      return;
+    } else {
+      detailPhoneErr.classList.add('hidden');
+    }
+  }
 
   let seatVal = seatInput ? seatInput.value.trim() : '';
   if (seatVal && typeof expandSeatRanges === 'function') {
     seatVal = expandSeatRanges(seatVal);
   }
 
+  let followerVal = null;
+  if (followerInput && followerInput.value.trim() !== '') {
+    const parsed = parseInt(followerInput.value.replace(/,/g, ''), 10);
+    followerVal = isNaN(parsed) ? null : parsed;
+  }
+
+  const currentGuest = state.guests.find(g => g.id === guestId);
+
   const updates = {
-    organization: mediaInput ? mediaInput.value.trim() : undefined,
     name: nameInput ? nameInput.value.trim() : undefined,
+    detail: mediaInput ? mediaInput.value.trim() : undefined,
+    organization: (currentGuest && currentGuest.organization) || (mediaInput ? mediaInput.value.trim() : undefined),
+    follower: followerVal,
+    pic: picInput ? (picInput.value.trim() || null) : null,
     participant: participantInput ? parseInt(participantInput.value, 10) || 1 : 1,
     seat: seatVal || null,
     phone: phoneInput ? phoneInput.value.trim() : undefined
@@ -1955,13 +3187,33 @@ function populateAvailableSeatsSelect() {
 async function handleAddGuestSubmit(e) {
   e.preventDefault();
 
-  const organization = document.getElementById('addGuestOrg').value.trim();
+  const detail = document.getElementById('addGuestOrg').value.trim();
   const name = document.getElementById('addGuestName').value.trim();
+  const followerEl = document.getElementById('addGuestFollower');
+  const picEl = document.getElementById('addGuestPic');
   const participant = parseInt(document.getElementById('addGuestParticipant').value, 10) || 1;
   const seatInputEl = document.getElementById('addGuestSeatText') || document.getElementById('addGuestSeat');
   let seat = seatInputEl ? seatInputEl.value.trim() : '';
   const phone = document.getElementById('addGuestPhone').value.trim();
   const attended = document.getElementById('addGuestAttended').value === 'true';
+
+  let followerVal = null;
+  if (followerEl && followerEl.value.trim() !== '') {
+    const num = parseInt(followerEl.value.replace(/,/g, ''), 10);
+    if (!isNaN(num)) followerVal = num;
+  }
+  const picVal = (picEl && picEl.value.trim() !== '') ? picEl.value.trim() : null;
+
+  // Phone 10-digit validation
+  const phoneErrEl = document.getElementById('addGuestPhoneError');
+  const phoneValidation = validatePhone(phone);
+  if (!phoneValidation.valid) {
+    if (phoneErrEl) phoneErrEl.classList.remove('hidden');
+    document.getElementById('addGuestPhone').focus();
+    return;
+  } else {
+    if (phoneErrEl) phoneErrEl.classList.add('hidden');
+  }
 
   if (seat && typeof expandSeatRanges === 'function') {
     seat = expandSeatRanges(seat);
@@ -1969,8 +3221,11 @@ async function handleAddGuestSubmit(e) {
 
   const newGuestData = {
     screeningId: state.activeScreeningId,
-    organization,
-    name,
+    name: name || detail || 'แขกใหม่',
+    detail: detail,
+    organization: detail || 'ไม่ระบุสังกัด',
+    follower: followerVal,
+    pic: picVal,
     participant,
     seat: seat || null,
     phone,
@@ -2154,43 +3409,56 @@ function escapeHtml(str) {
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;');
 }
+window.escapeHtml = escapeHtml;
 
 // ================= OPERATIONS SUITE FUNCTIONS =================
 
 function renderCheckInButtonHtml(guest) {
   const quota = guest.participant || 1;
-  const isAttended = !!guest.attended;
-  const attendedCount = guest.attendedCount !== undefined ? guest.attendedCount : (isAttended ? quota : 0);
 
-  if (quota > 1) {
-    if (isAttended) {
+  // Compute from new seats array first, fall back to legacy attended/attendedCount
+  let checkedInCount = 0;
+  let totalSeats = 0;
+  if (Array.isArray(guest.seats) && guest.seats.length > 0) {
+    totalSeats = guest.seats.length;
+    checkedInCount = guest.seats.filter(s => typeof s === 'object' ? s.checkedIn : false).length;
+  } else {
+    totalSeats = quota;
+    checkedInCount = guest.attendedCount !== undefined ? guest.attendedCount : (guest.attended ? quota : 0);
+  }
+
+  const status = guest.checkInStatus || (checkedInCount === 0 ? 'not-checked' : (checkedInCount >= totalSeats ? 'complete' : 'partial'));
+
+  if (quota > 1 || totalSeats > 1) {
+    if (status === 'complete') {
       return `
-        <button class="btn-checkin-toggle checked-in" onclick="event.stopPropagation(); toggleGuestCheckIn('${guest.id}')" title="เซ็นครบแล้ว (${quota}/${quota} ท่าน) คลิกเพื่อยกเลิก">
+        <button class="btn-checkin-toggle checked-in" onclick="event.stopPropagation(); toggleGuestCheckIn('${guest.id}')" title="เซ็นครบแล้ว (${checkedInCount}/${totalSeats} ท่าน) คลิกเพื่อยกเลิก">
           <i class="fa-solid fa-check"></i>
-          <span>เซ็นครบ (${quota})</span>
+          <span>เซ็นครบ (${totalSeats})</span>
         </button>
       `;
-    } else if (attendedCount > 0) {
+    } else if (status === 'partial') {
       return `
         <button class="btn-checkin-toggle partial" onclick="event.stopPropagation(); openPartialCheckInModalById('${guest.id}')" title="มาบางส่วน คลิกเพื่อเปลี่ยนจำนวน">
           <i class="fa-solid fa-users-viewfinder"></i>
-          <span>มา ${attendedCount}/${quota}</span>
+          <span>มา ${checkedInCount}/${totalSeats}</span>
         </button>
       `;
     } else {
       return `
         <button class="btn-checkin-toggle not-checked" onclick="event.stopPropagation(); toggleGuestCheckIn('${guest.id}')" title="คลิกเพื่อเซ็นชื่อเช็คอิน">
           <i class="fa-solid fa-circle-dot"></i>
-          <span>รอเซ็น (${quota})</span>
+          <span>รอเซ็น (${totalSeats})</span>
         </button>
       `;
     }
   }
 
+  const isComplete = (status === 'complete' || guest.attended);
   return `
-    <button class="btn-checkin-toggle ${isAttended ? 'checked-in' : 'not-checked'}" onclick="event.stopPropagation(); toggleGuestCheckIn('${guest.id}')" title="${isAttended ? 'เซ็นแล้ว (คลิกเพื่อยกเลิก)' : 'คลิกเพื่อเซ็นชื่อเช็คอิน'}">
-      <i class="fa-solid ${isAttended ? 'fa-check' : 'fa-circle-dot'}"></i>
-      <span>${isAttended ? 'เซ็นแล้ว ✓' : 'รอเซ็น'}</span>
+    <button class="btn-checkin-toggle ${isComplete ? 'checked-in' : 'not-checked'}" onclick="event.stopPropagation(); toggleGuestCheckIn('${guest.id}')" title="${isComplete ? 'เซ็นแล้ว (คลิกเพื่อยกเลิก)' : 'คลิกเพื่อเซ็นชื่อเช็คอิน'}">
+      <i class="fa-solid ${isComplete ? 'fa-check' : 'fa-circle-dot'}"></i>
+      <span>${isComplete ? 'เซ็นแล้ว ✓' : 'รอเซ็น'}</span>
     </button>
   `;
 }
@@ -2215,6 +3483,19 @@ function setupOperationsModals() {
   if (btnCloseWalkIn) btnCloseWalkIn.addEventListener('click', closeWalkIn);
   if (btnCancelWalkIn) btnCancelWalkIn.addEventListener('click', closeWalkIn);
   if (modalWalkIn) modalWalkIn.addEventListener('click', (e) => { if (e.target === modalWalkIn) closeWalkIn(); });
+
+  // Open Walk-in Modal buttons
+  const openWalkInButtons = document.querySelectorAll(
+    '#btnOpenGroupWalkInFromSeats, #btnOpenGroupWalkInFromGuests, .btn-open-walkin, .btn-header-walkin'
+  );
+  openWalkInButtons.forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (typeof window.openWalkInModal === 'function') {
+        window.openWalkInModal();
+      }
+    });
+  });
 
   let dupTimer = null;
   const triggerDupCheck = () => {
@@ -2416,10 +3697,20 @@ window.openWalkInModal = function(seatId = null) {
   const modal = document.getElementById('modalWalkInSeat');
   if (!modal) return;
 
-  if (seatId) {
-    window._walkInSelectedSeats = [seatId.trim().toUpperCase()];
+  const cleanSeatId = (typeof seatId === 'string' && seatId.trim()) ? seatId.trim().toUpperCase() : null;
+
+  if (cleanSeatId) {
+    window._walkInSelectedSeats = [cleanSeatId];
   } else {
     window._walkInSelectedSeats = [];
+  }
+
+  // Update modal title depending on whether opened for a specific seat or generally
+  const titleEl = document.getElementById('walkInModalTitle');
+  if (titleEl) {
+    titleEl.innerHTML = cleanSeatId
+      ? `<i class="fa-solid fa-person-walking-dashed-line-arrow-right" style="color: var(--color-teal);"></i> เพิ่มแขก Walk-in สำหรับที่นั่ง ${escapeHtml(cleanSeatId)}`
+      : `<i class="fa-solid fa-person-walking-dashed-line-arrow-right" style="color: var(--color-teal);"></i> เพิ่มแขก Walk-in (เดี่ยว / กลุ่ม)`;
   }
 
   // Reset inputs
@@ -2429,8 +3720,10 @@ window.openWalkInModal = function(seatId = null) {
   document.getElementById('walkInPhone').value = '';
   document.getElementById('walkInImmediateCheckIn').checked = true;
 
-  document.getElementById('walkInDuplicateWarning').classList.add('hidden');
-  document.getElementById('walkInDuplicateList').innerHTML = '';
+  document.getElementById('walkInDuplicateWarning')?.classList.add('hidden');
+  const dupList = document.getElementById('walkInDuplicateList');
+  if (dupList) dupList.innerHTML = '';
+  document.getElementById('walkInPhoneError')?.classList.add('hidden');
 
   renderWalkInSelectedSeats();
 
@@ -2563,11 +3856,22 @@ async function checkWalkInDuplicates() {
 async function handleWalkInSubmit(e) {
   e.preventDefault();
   const name = document.getElementById('walkInName').value.trim();
-  const organization = document.getElementById('walkInMedia').value.trim() || 'Walk-in แขกทั่วไป';
+  const detail = document.getElementById('walkInMedia').value.trim() || 'Walk-in แขกทั่วไป';
   const participant = parseInt(document.getElementById('walkInParticipant').value, 10) || 1;
   const phone = document.getElementById('walkInPhone').value.trim();
   const attended = document.getElementById('walkInImmediateCheckIn').checked;
   const seats = window._walkInSelectedSeats || [];
+
+  // Phone 10-digit validation
+  const walkInPhoneErrEl = document.getElementById('walkInPhoneError');
+  const walkInPhoneValidation = validatePhone(phone);
+  if (!walkInPhoneValidation.valid) {
+    if (walkInPhoneErrEl) walkInPhoneErrEl.classList.remove('hidden');
+    document.getElementById('walkInPhone').focus();
+    return;
+  } else {
+    if (walkInPhoneErrEl) walkInPhoneErrEl.classList.add('hidden');
+  }
 
   if (seats.length !== participant) {
     alert('กรุณาเลือกที่นั่งให้ครบ ' + participant + ' ที่นั่ง (ขณะนี้เลือก ' + seats.length + ' ที่)');
@@ -2582,7 +3886,8 @@ async function handleWalkInSubmit(e) {
     const res = await API.walkIn({
       screeningId: state.activeScreeningId,
       name,
-      organization,
+      detail,
+      organization: detail,
       participant,
       seats,
       phone,
@@ -2861,7 +4166,18 @@ async function handleConfirmPreCheckIn() {
   const updates = {};
   if (fixName) updates.name = fixName;
   if (fixSeat) updates.seat = (typeof expandSeatRanges === 'function') ? expandSeatRanges(fixSeat) : fixSeat;
-  if (phoneVal) updates.phone = phoneVal;
+  if (phoneVal) {
+    const phoneValidation = validatePhone(phoneVal);
+    const phoneErrEl = document.getElementById('preCheckInPhoneError');
+    if (!phoneValidation.valid) {
+      if (phoneErrEl) phoneErrEl.classList.remove('hidden');
+      document.getElementById('preCheckInPhoneInput')?.focus();
+      return;
+    } else {
+      if (phoneErrEl) phoneErrEl.classList.add('hidden');
+      updates.phone = phoneVal;
+    }
+  }
 
   if (Object.keys(updates).length > 0) {
     try {
@@ -2891,7 +4207,7 @@ window.openPartialCheckInModal = function(guest) {
   summaryBox.innerHTML = `
     <div style="font-size: 15px; font-weight: 700; color: #fff;">${escapeHtml(guest.name)}</div>
     <div style="font-size: 12.5px; color: var(--color-gold); margin-top: 2px;">
-      <i class="fa-solid fa-building"></i> ${escapeHtml(guest.organization || 'ไม่ระบุสื่อ')} · โควตาทั้งหมด: <strong>${guest.participant || 1} ท่าน</strong>
+      <i class="fa-solid fa-building"></i> ${escapeHtml(guest.detail || guest.organization || 'ไม่ระบุสื่อ')} · โควตาทั้งหมด: <strong>${guest.participant || 1} ท่าน</strong>
     </div>
     <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">
       ที่นั่ง: <span style="color: var(--color-teal); font-family: monospace;">${escapeHtml(guest.seat || '-')}</span>
@@ -2899,23 +4215,102 @@ window.openPartialCheckInModal = function(guest) {
   `;
 
   const quota = guest.participant || 1;
-  const range = document.getElementById('partialCountRange');
-  const countDisp = document.getElementById('partialCountDisplay');
-  const totalDisp = document.getElementById('partialQuotaTotalDisplay');
+  const seats = Array.isArray(guest.seats) && guest.seats.length > 0 ? guest.seats : [];
+
+  const seatsSection = document.getElementById('partialSeatsSection');
+  const countSection = document.getElementById('partialCountSection');
+  const checklist = document.getElementById('partialSeatsChecklist');
   const statusLbl = document.getElementById('partialStatusLabel');
+  const btnSelectAll = document.getElementById('btnPartialSelectAll');
+  const btnDeselectAll = document.getElementById('btnPartialDeselectAll');
 
-  const curAttendedCount = guest.attendedCount !== undefined ? guest.attendedCount : (guest.attended ? quota : 1);
+  const updateStatusLabel = () => {
+    if (!checklist || !statusLbl) return;
+    const allBoxes = checklist.querySelectorAll('input[type="checkbox"]');
+    const checkedCount = Array.from(allBoxes).filter(cb => cb.checked).length;
+    const total = allBoxes.length || quota;
+    if (checkedCount === 0) {
+      statusLbl.textContent = 'ยังไม่มาถึง (0 ท่าน)';
+      statusLbl.style.color = 'var(--text-muted)';
+    } else if (checkedCount >= total) {
+      statusLbl.textContent = `มาครบแล้ว (${checkedCount}/${total} ท่าน ✓)`;
+      statusLbl.style.color = '#34d399';
+    } else {
+      statusLbl.textContent = `มาบางส่วน (${checkedCount}/${total} ท่าน)`;
+      statusLbl.style.color = 'var(--color-teal)';
+    }
+  };
 
-  if (range) {
-    range.max = quota;
-    range.value = curAttendedCount;
-  }
-  if (countDisp) countDisp.textContent = curAttendedCount;
-  if (totalDisp) totalDisp.textContent = `/ ${quota} ท่าน`;
-  if (statusLbl) {
-    if (curAttendedCount === 0) statusLbl.textContent = 'ยังไม่มาถึง (0 ท่าน)';
-    else if (curAttendedCount >= quota) statusLbl.textContent = `มาครบแล้ว (${curAttendedCount}/${quota} ท่าน ✓)`;
-    else statusLbl.textContent = `มาบางส่วน (${curAttendedCount}/${quota} ท่าน)`;
+  if (seats.length > 0) {
+    // Show seat checkboxes, hide range slider
+    if (seatsSection) seatsSection.classList.remove('hidden');
+    if (countSection) countSection.classList.add('hidden');
+
+    checklist.innerHTML = '';
+    seats.forEach(sObj => {
+      const code = typeof sObj === 'object' ? sObj.code : String(sObj);
+      const isChecked = typeof sObj === 'object' ? !!sObj.checkedIn : false;
+      const item = document.createElement('label');
+      item.className = `partial-seat-item${isChecked ? ' is-checked' : ''}`;
+      item.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <input type="checkbox" class="partial-seat-checkbox" value="${escapeHtml(code)}" ${isChecked ? 'checked' : ''}>
+          <span style="font-size: 13px; font-weight: 600; font-family: monospace; color: #fff;">${escapeHtml(code)}</span>
+          <span style="font-size: 11px; color: ${isChecked ? '#34d399' : 'var(--text-muted)'};">${isChecked ? '✓ เช็คอินแล้ว' : 'ยังไม่มา'}</span>
+        </div>
+        <i class="fa-solid ${isChecked ? 'fa-circle-check' : 'fa-circle'}" style="color: ${isChecked ? '#34d399' : 'var(--border-color)'}; font-size: 16px;"></i>
+      `;
+      const checkbox = item.querySelector('input[type="checkbox"]');
+      checkbox.addEventListener('change', () => {
+        if (checkbox.checked) {
+          item.classList.add('is-checked');
+        } else {
+          item.classList.remove('is-checked');
+        }
+        updateStatusLabel();
+      });
+      checklist.appendChild(item);
+    });
+
+    // Bind select/deselect all buttons
+    if (btnSelectAll) {
+      btnSelectAll.onclick = () => {
+        checklist.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+          cb.checked = true;
+          cb.closest('.partial-seat-item')?.classList.add('is-checked');
+        });
+        updateStatusLabel();
+      };
+    }
+    if (btnDeselectAll) {
+      btnDeselectAll.onclick = () => {
+        checklist.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+          cb.checked = false;
+          cb.closest('.partial-seat-item')?.classList.remove('is-checked');
+        });
+        updateStatusLabel();
+      };
+    }
+
+    updateStatusLabel();
+  } else {
+    // Fallback: show range slider if no specific seats assigned
+    if (seatsSection) seatsSection.classList.add('hidden');
+    if (countSection) countSection.classList.remove('hidden');
+
+    const range = document.getElementById('partialCountRange');
+    const countDisp = document.getElementById('partialCountDisplay');
+    const totalDisp = document.getElementById('partialQuotaTotalDisplay');
+    const curAttendedCount = guest.attendedCount !== undefined ? guest.attendedCount : (guest.attended ? quota : 1);
+
+    if (range) { range.max = quota; range.value = curAttendedCount; }
+    if (countDisp) countDisp.textContent = curAttendedCount;
+    if (totalDisp) totalDisp.textContent = `/ ${quota} ท่าน`;
+    if (statusLbl) {
+      if (curAttendedCount === 0) { statusLbl.textContent = 'ยังไม่มาถึง (0 ท่าน)'; statusLbl.style.color = 'var(--text-muted)'; }
+      else if (curAttendedCount >= quota) { statusLbl.textContent = `มาครบแล้ว (${curAttendedCount}/${quota} ท่าน ✓)`; statusLbl.style.color = '#34d399'; }
+      else { statusLbl.textContent = `มาบางส่วน (${curAttendedCount}/${quota} ท่าน)`; statusLbl.style.color = 'var(--color-teal)'; }
+    }
   }
 
   modal.classList.remove('hidden');
@@ -2926,26 +4321,65 @@ async function handlePartialCheckInSubmit() {
   const guest = state.guests.find(g => g.id === guestId);
   if (!guest) return;
 
-  const count = parseInt(document.getElementById('partialCountRange').value, 10);
   const quota = guest.participant || 1;
+  const seats = Array.isArray(guest.seats) && guest.seats.length > 0 ? guest.seats : [];
+  const checklist = document.getElementById('partialSeatsChecklist');
 
-  try {
-    const res = await API.checkInGuest(guestId, {
-      attendedCount: count,
-      attended: count >= quota,
+  let payload;
+
+  if (seats.length > 0 && checklist && !document.getElementById('partialSeatsSection')?.classList.contains('hidden')) {
+    // Seat-checkbox mode: send explicit seatCodes array
+    const selectedCodes = Array.from(checklist.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value);
+    const checkedCount = selectedCodes.length;
+    payload = {
+      seatCodes: selectedCodes,
+      attended: checkedCount >= seats.length,
       confirmedWarning: true,
       checkInAnyway: true
-    });
+    };
 
-    if (res.success) {
-      showToast(count > 0 ? `บันทึกคุณ ${guest.name} (${count}/${quota} ท่าน) เรียบร้อย` : `ยกเลิกการเช็คอินคุณ ${guest.name}`);
-      document.getElementById('modalPartialCheckIn').classList.add('hidden');
-      await refreshData();
-      if (state.selectedSeat) showSeatDetails(state.selectedSeat);
-      if (state.selectedGuestId) showGuestDetails(state.selectedGuestId);
+    try {
+      const res = await API.checkInGuest(guestId, payload);
+      if (res.success) {
+        const allCodes = seats.map(s => typeof s === 'object' ? s.code : s);
+        // DOM update: checked seats → green, unchecked → remove green
+        const selectedSet = new Set(selectedCodes.map(c => c.toUpperCase()));
+        allCodes.forEach(code => {
+          updateSeatsCheckInDom(code, selectedSet.has(code.toUpperCase()));
+        });
+
+        showToast(checkedCount > 0
+          ? `บันทึกคุณ ${guest.name} (${checkedCount}/${seats.length} ที่นั่ง) เรียบร้อย`
+          : `ยกเลิกการเช็คอินคุณ ${guest.name}`);
+        document.getElementById('modalPartialCheckIn').classList.add('hidden');
+        await refreshData({ skipSeatsGrid: true });
+        if (state.selectedSeat) showSeatDetails(state.selectedSeat);
+        if (state.selectedGuestId) showGuestDetails(state.selectedGuestId);
+      }
+    } catch (err) {
+      showToast('บันทึกล้มเหลว: ' + err.message, 'error');
     }
-  } catch (err) {
-    showToast('บันทึกล้มเหลว: ' + err.message, 'error');
+  } else {
+    // Fallback: range slider mode
+    const count = parseInt(document.getElementById('partialCountRange').value, 10);
+    try {
+      const res = await API.checkInGuest(guestId, {
+        attendedCount: count,
+        attended: count >= quota,
+        confirmedWarning: true,
+        checkInAnyway: true
+      });
+
+      if (res.success) {
+        showToast(count > 0 ? `บันทึกคุณ ${guest.name} (${count}/${quota} ท่าน) เรียบร้อย` : `ยกเลิกการเช็คอินคุณ ${guest.name}`);
+        document.getElementById('modalPartialCheckIn').classList.add('hidden');
+        await refreshData();
+        if (state.selectedSeat) showSeatDetails(state.selectedSeat);
+        if (state.selectedGuestId) showGuestDetails(state.selectedGuestId);
+      }
+    } catch (err) {
+      showToast('บันทึกล้มเหลว: ' + err.message, 'error');
+    }
   }
 }
 

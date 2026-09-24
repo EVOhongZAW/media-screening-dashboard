@@ -38,7 +38,21 @@ exports.getSummary = async (filters) => {
     const totalScreenings = screenings.length;
     const totalGuests = guests.length;
     
-    const attendedGuests = guests.filter(g => g.attended).length;
+    let fullyAttendedCount = 0;
+    let totalCheckedInSeats = 0;
+
+    guests.forEach(g => {
+        if (Array.isArray(g.seats) && g.seats.length > 0) {
+            const checked = g.seats.filter(s => typeof s === 'object' ? s.checkedIn : false).length;
+            totalCheckedInSeats += checked;
+            if (checked >= g.seats.length) fullyAttendedCount++;
+        } else {
+            if (g.attended) fullyAttendedCount++;
+            totalCheckedInSeats += g.attendedCount || (g.attended ? (parseInt(g.participant, 10) || 1) : 0);
+        }
+    });
+
+    const attendedGuests = fullyAttendedCount;
     const attendanceRate = totalGuests > 0 ? (attendedGuests / totalGuests) * 100 : 0;
 
     const currentDate = new Date();
@@ -54,7 +68,8 @@ exports.getSummary = async (filters) => {
         totalScreenings,
         totalGuests,
         attendanceRate: parseFloat(attendanceRate.toFixed(2)),
-        screeningsThisMonth
+        screeningsThisMonth,
+        totalCheckedInSeats
     };
 };
 
@@ -133,21 +148,58 @@ exports.getOverviewCinema = async (screeningId) => {
 
     const totalGuests = guests.length;
     const totalParticipants = guests.reduce((sum, g) => sum + (parseInt(g.participant, 10) || 1), 0);
-    const checkedIn = guests.filter(g => g.attended).length;
-    const pendingSign = Math.max(0, totalGuests - checkedIn);
 
-    const bookedSeatsList = guests.flatMap(g => g.seat ? g.seat.split(',').map(s => s.trim()) : []).filter(Boolean);
+    let checkedInSeatsCount = 0;
+    let fullyCheckedInGuests = 0;
+    let partialCheckedInGuests = 0;
+
+    guests.forEach(g => {
+        if (Array.isArray(g.seats) && g.seats.length > 0) {
+            const checked = g.seats.filter(s => typeof s === 'object' ? s.checkedIn : false).length;
+            checkedInSeatsCount += checked;
+            if (checked >= g.seats.length) {
+                fullyCheckedInGuests++;
+            } else if (checked > 0) {
+                partialCheckedInGuests++;
+            }
+        } else {
+            const attCount = g.attendedCount || (g.attended ? (parseInt(g.participant, 10) || 1) : 0);
+            checkedInSeatsCount += attCount;
+            const quota = parseInt(g.participant, 10) || 1;
+            if (attCount >= quota && quota > 0) {
+                fullyCheckedInGuests++;
+            } else if (attCount > 0) {
+                partialCheckedInGuests++;
+            }
+        }
+    });
+
+    const checkedIn = fullyCheckedInGuests;
+    const checkedInTotal = fullyCheckedInGuests + partialCheckedInGuests;
+    const pendingSign = Math.max(0, totalGuests - checkedInTotal);
+
+    const bookedSeatsList = guests.flatMap(g => {
+        if (Array.isArray(g.seats) && g.seats.length > 0) {
+            return g.seats.map(s => typeof s === 'object' ? s.code : s);
+        }
+        return g.seat ? g.seat.split(',').map(s => s.trim()) : [];
+    }).filter(Boolean);
+
     const bookedSeats = bookedSeatsList.length;
-    const assignedGuests = guests.filter(g => g.seat && g.seat.trim() !== '').length;
+    const assignedGuests = guests.filter(g => (Array.isArray(g.seats) && g.seats.length > 0) || (g.seat && g.seat.trim() !== '')).length;
     const unassignedGuests = totalGuests - assignedGuests;
 
-    const checkInRate = totalGuests > 0 ? Math.round((checkedIn / totalGuests) * 100) : 0;
+    const checkInRate = totalGuests > 0 ? Math.round((checkedInTotal / totalGuests) * 100) : 0;
     const seatOccupancyRate = totalSeats > 0 ? Math.round((bookedSeats / totalSeats) * 100) : 0;
 
     return {
         totalGuests,
         totalParticipants,
         checkedIn,
+        checkedInTotal,
+        fullyCheckedInGuests,
+        partialCheckedInGuests,
+        checkedInSeatsCount,
         pendingSign,
         bookedSeats,
         totalSeats,

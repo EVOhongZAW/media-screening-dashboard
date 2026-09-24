@@ -61,12 +61,16 @@ const API = {
     const query = new URLSearchParams(params).toString();
     return this.fetchJSON(`/api/guests${query ? '?' + query : ''}`);
   },
+  getGuest(id) { return this.fetchJSON(`/api/guests/${id}`); },
   createGuest(data) { return this.postJSON('/api/guests', data); },
   walkIn(data) { return this.postJSON('/api/guests/walk-in', data); },
   importGuests(data) { return this.postJSON('/api/guests/import', data); },
   updateGuest(id, data) { return this.putJSON(`/api/guests/${id}`, data); },
   deleteGuest(id) { return this.deleteJSON(`/api/guests/${id}`); },
   checkInGuest(id, payload) { return this.postJSON(`/api/guests/${id}/check-in`, payload); },
+  checkInSeat(guestId, seatCode, checkedIn) {
+    return this.putJSON(`/api/guests/${guestId}/seats/${seatCode}/checkin`, { checkedIn });
+  },
   bulkDeleteGuests(screeningId, confirmation) {
     return this.postJSON('/api/guests/bulk-delete', { screeningId, confirmation });
   },
@@ -96,6 +100,11 @@ const API = {
   },
   getAllSeatsStatus(screeningId) {
     return this.fetchJSON(`/api/seats/status-all?screeningId=${screeningId}`);
+  },
+  autoAssignSeats(screeningId, guestIds = null) {
+    const payload = { screeningId };
+    if (guestIds) payload.guestIds = guestIds;
+    return this.postJSON('/api/seats/auto-assign', payload);
   },
 
   // Stats

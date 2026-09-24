@@ -1,0 +1,160 @@
+/* ===================================================================
+   DESIGN SYSTEM TOKENS: Cinema Media Screening & Seat Management
+   Theme: Dark Cinema Glassmorphism
+   Architecture: Centralized Single Source of Truth
+   =================================================================== */
+
+:root {
+  /* ================= 1. COLOR PALETTE ================= */
+  
+  /* Background / Surface Levels (Charcoal & Obsidian Glass) */
+  --color-bg-base: #070a12;           /* Deepest background (canvas) */
+  --color-bg-sidebar: #0c101a;        /* Left sidebar background */
+  --color-bg-surface: #111726;        /* Standard card/section background */
+  --color-bg-surface-hover: #172033;  /* Hovered card/row background */
+  --color-bg-elevated: #161e31;       /* Raised panels & sidebars */
+  --color-bg-input: #0b0f1a;          /* Form inputs & search boxes */
+  --color-bg-overlay: rgba(3, 7, 18, 0.85); /* Modal backdrops with blur */
+
+  /* Glassmorphism Surface Tokens */
+  --glass-bg: rgba(17, 24, 39, 0.82);
+  --glass-bg-subtle: rgba(255, 255, 255, 0.035);
+  --glass-bg-hover: rgba(255, 255, 255, 0.065);
+  --glass-border: 1px solid rgba(255, 255, 255, 0.10);
+  --glass-border-subtle: 1px solid rgba(255, 255, 255, 0.06);
+  --glass-border-gold: 1px solid rgba(245, 158, 11, 0.35);
+  --glass-blur: blur(14px);
+  --glass-blur-sm: blur(8px);
+
+  /* Border Tiers */
+  --color-border-subtle: rgba(255, 255, 255, 0.08); /* Dividers & quiet borders */
+  --color-border-default: #1e293b;                   /* Standard card borders */
+  --color-border-active: #334155;                    /* Highlighted & focused borders */
+  --color-border-gold: rgba(245, 158, 11, 0.45);    /* Premium gold borders */
+
+  /* Text & Typography Contrast Levels (WCAG AA Compliant) */
+  --color-text-primary: #f8fafc;   /* Pure white/slate for headings & high emphasis */
+  --color-text-secondary: #cbd5e1; /* Clear readable text for body, labels */
+  --color-text-muted: #8292a8;     /* Secondary details, timestamps, helper text */
+  --color-text-dim: #475569;       /* Inactive placeholders, disabled items */
+  --color-text-inverse: #070a12;   /* Dark text when placed on bright badges */
+
+  /* Accent & Cinema Brand Colors */
+  --color-gold: #f59e0b;           /* Amber/Gold signature brand */
+  --color-gold-hover: #d97706;     /* Darker gold on button hover */
+  --color-gold-bright: #fbbf24;    /* Vibrant gold for highlights & active pills */
+  --color-gold-bg: rgba(245, 158, 11, 0.14);
+
+  --color-teal: #14b8a6;           /* Teal for walk-ins & privilege */
+  --color-teal-hover: #0d9488;
+  --color-teal-bg: rgba(20, 184, 166, 0.14);
+
+  --color-cyan: #06b6d4;           /* Cyan for phoenix next & active states */
+  --color-cyan-hover: #0891b2;
+  --color-cyan-bg: rgba(6, 182, 212, 0.14);
+
+  --color-emerald: #10b981;        /* Emerald Green for successful check-ins */
+  --color-emerald-hover: #059669;
+  --color-emerald-bg: rgba(16, 185, 129, 0.14);
+
+  --color-pink: #ec4899;           /* Vibrant Pink for Idol / special quotas */
+  --color-pink-hover: #db2777;
+  --color-pink-bg: rgba(236, 72, 153, 0.14);
+
+  --color-blue: #3b82f6;           /* Classic Blue */
+  --color-blue-hover: #2563eb;
+  --color-blue-bg: rgba(59, 130, 246, 0.14);
+
+  --color-purple: #8b5cf6;         /* Purple for auto-assign / VIP */
+  --color-purple-hover: #7c3aed;
+  --color-purple-bg: rgba(139, 92, 246, 0.14);
+
+  --color-danger: #ef4444;         /* Red for deletion, reset, errors */
+  --color-danger-hover: #dc2626;
+  --color-danger-bg: rgba(239, 68, 68, 0.14);
+  --color-danger-border: rgba(239, 68, 68, 0.35);
+
+  /* ================= 2. SPACING SCALE ================= */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+
+  /* ================= 3. TYPOGRAPHY SCALE ================= */
+  --font-family-main: 'Prompt', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-family-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+  --fs-xs: 11px;
+  --fs-sm: 12.5px;
+  --fs-base: 14px;
+  --fs-md: 15px;
+  --fs-lg: 18px;
+  --fs-xl: 20px;
+  --fs-2xl: 24px;
+  --fs-3xl: 28px;
+
+  --fw-light: 300;
+  --fw-normal: 400;
+  --fw-medium: 500;
+  --fw-semibold: 600;
+  --fw-bold: 700;
+
+  --lh-tight: 1.25;
+  --lh-normal: 1.5;
+  --lh-relaxed: 1.65;
+
+  /* ================= 4. BORDER RADIUS SCALE ================= */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-full: 9999px;
+
+  /* ================= 5. SHADOW & ELEVATION SCALE ================= */
+  --elevation-1: 0 2px 8px rgba(0, 0, 0, 0.35);                      /* Flat cards & inputs */
+  --elevation-2: 0 4px 16px rgba(0, 0, 0, 0.45);                     /* Hovered cards, dropdowns */
+  --elevation-3: 0 10px 30px rgba(0, 0, 0, 0.65);                    /* Modals, float bars */
+  --elevation-4: 0 18px 50px rgba(0, 0, 0, 0.85);                    /* Prominent overlays */
+  
+  --shadow-glow-gold: 0 0 16px rgba(245, 158, 11, 0.28);
+  --shadow-glow-emerald: 0 0 14px rgba(16, 185, 129, 0.35);
+  --shadow-glow-teal: 0 0 14px rgba(20, 184, 166, 0.32);
+  --shadow-glow-cyan: 0 0 14px rgba(6, 182, 212, 0.32);
+
+  /* ================= 6. TRANSITIONS & TIMING ================= */
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  --transition-smooth: 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* ================= 7. ACCESSIBILITY & TOUCH TARGETS ================= */
+  --touch-target-min: 44px; /* Minimum touch target for iPad / tablet compliance */
+  --focus-ring: 0 0 0 2px var(--color-bg-base), 0 0 0 4px rgba(245, 158, 11, 0.65);
+  --focus-ring-emerald: 0 0 0 2px var(--color-bg-base), 0 0 0 4px rgba(16, 185, 129, 0.65);
+
+  /* ================= 8. BACKWARD COMPATIBILITY ALIASES ================= */
+  --bg-base: var(--color-bg-base);
+  --bg-sidebar: var(--color-bg-sidebar);
+  --bg-card: var(--color-bg-surface);
+  --bg-card-hover: var(--color-bg-surface-hover);
+  --bg-panel: var(--color-bg-elevated);
+  --bg-input: var(--color-bg-input);
+
+  --border-subtle: var(--color-border-subtle);
+  --border-active: var(--color-border-default);
+  --border-highlight: var(--color-border-active);
+
+  --text-main: var(--color-text-primary);
+  --text-muted: var(--color-text-secondary);
+  --text-dim: var(--color-text-muted);
+
+  --font-main: var(--font-family-main);
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-lg);
+  --radius-lg: var(--radius-xl);
+}

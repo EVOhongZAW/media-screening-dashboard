@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>รอบสื่อ - Guest & Seat Manager</title>
+  <title>Media Screening Dashboard - Guest & Seat Manager</title>
   
   <!-- Google Fonts: Prompt -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -13,8 +13,9 @@
   <!-- Font Awesome Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   
-  <!-- Main Stylesheet -->
-  <link rel="stylesheet" href="css/style.css">
+  <!-- Design Tokens & Main Stylesheet -->
+  <link rel="stylesheet" href="/css/tokens.css">
+  <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
   <!-- Toast Container -->
@@ -82,26 +83,63 @@
         </header>
 
         <!-- 5 Summary KPI Cards -->
-        <div class="stats-grid">
-          <div class="stat-card">
+        <div class="stats-grid" id="overviewStatsGrid">
+          <div class="stat-card stat-card-guests">
+            <div class="stat-card-header">
+              <span class="stat-card-icon icon-blue"><i class="fa-solid fa-users"></i></span>
+              <span class="stat-card-tag">แขกทั้งหมด</span>
+            </div>
             <div class="stat-number" id="statTotalGuests">0</div>
-            <div class="stat-label">สื่อ/แขกทั้งหมด</div>
+            <div class="stat-label">สื่อ / แขกทั้งหมด (ราย)</div>
           </div>
-          <div class="stat-card">
+          <div class="stat-card stat-card-quota">
+            <div class="stat-card-header">
+              <span class="stat-card-icon icon-gold"><i class="fa-solid fa-ticket"></i></span>
+              <span class="stat-card-tag">โควตารวม</span>
+            </div>
             <div class="stat-number stat-highlight" id="statTotalParticipants">0</div>
             <div class="stat-label">โควตาที่นั่งรวม (คน)</div>
           </div>
-          <div class="stat-card">
+          <div class="stat-card stat-card-seats">
+            <div class="stat-card-header">
+              <span class="stat-card-icon icon-cyan"><i class="fa-solid fa-couch"></i></span>
+              <span class="stat-card-tag">ผังที่นั่ง</span>
+            </div>
             <div class="stat-number" id="statBookedSeats">0/1164</div>
             <div class="stat-label">ที่นั่งในผังที่จัดแล้ว</div>
           </div>
-          <div class="stat-card">
+          <div class="stat-card stat-card-checkedin">
+            <div class="stat-card-header">
+              <span class="stat-card-icon icon-emerald"><i class="fa-solid fa-circle-check"></i></span>
+              <span class="stat-card-tag">เช็คอินแล้ว</span>
+            </div>
             <div class="stat-number stat-checkin" id="statCheckedIn">0</div>
             <div class="stat-label">เซ็นชื่อเช็คอินแล้ว ✓</div>
           </div>
-          <div class="stat-card">
+          <div class="stat-card stat-card-pending">
+            <div class="stat-card-header">
+              <span class="stat-card-icon icon-amber"><i class="fa-solid fa-clock"></i></span>
+              <span class="stat-card-tag">รอเช็คอิน</span>
+            </div>
             <div class="stat-number" id="statPendingSign" style="color: #fbbf24;">0</div>
             <div class="stat-label">รอเซ็นชื่อเช็คอิน</div>
+          </div>
+        </div>
+
+        <!-- Empty State (Shown when no screening is selected or zero data) -->
+        <div class="overview-empty-state hidden" id="overviewEmptyState">
+          <div class="empty-state-icon">
+            <i class="fa-solid fa-film"></i>
+          </div>
+          <h3 class="empty-state-title">ยังไม่มีข้อมูลรอบฉายภาพยนตร์</h3>
+          <p class="empty-state-desc">เลือกรอบภาพยนตร์จากแถบด้านบน หรือเพิ่มรอบฉายใหม่เพื่อเริ่มต้นจัดการที่นั่งและแขก</p>
+          <div class="empty-state-actions">
+            <button class="btn btn-primary" onclick="document.getElementById('btnAddScreening')?.click()">
+              <i class="fa-solid fa-plus"></i> เพิ่มรอบหนังใหม่
+            </button>
+            <button class="btn btn-secondary btn-open-import-csv">
+              <i class="fa-solid fa-file-csv" style="color: var(--color-gold);"></i> นำเข้าข้อมูล CSV
+            </button>
           </div>
         </div>
 
@@ -155,20 +193,20 @@
 
       <!-- ================= 2. VIEW: ผังที่นั่งโรงภาพยนตร์ (Cinema Auditorium View) ================= -->
       <section id="view-seats" class="view-section">
-        <header class="page-header page-header-flex">
-          <div>
+        <header class="page-header page-header-flex seat-view-header">
+          <div class="page-header-text">
             <h1 class="page-title">ผังที่นั่งโรงภาพยนตร์เสมือนจริง</h1>
-            <p class="page-subtitle" id="seatsSubtitle">คลิกที่นั่งเพื่อดูรายละเอียด มอบหมายแขก หรือเช็คอินหน้างาน</p>
+            <p class="page-subtitle" id="seatsSubtitle">คลิกที่นั่งเพื่อดูรายละเอียดหรือมอบหมายแขก · Pavalai (Pavalai Royal Grand Theatre) (1164 ที่นั่ง)</p>
           </div>
 
           <!-- Seat View Mode Controls & Tier Filter -->
           <div class="seat-view-controls-wrapper">
-            <!-- Tier Tabs (Stalls vs Balcony vs All) -->
-            <div style="display: flex; gap: 10px; align-items: center; justify-content: flex-end; flex-wrap: wrap;">
-              <button class="btn btn-secondary btn-open-import-csv" id="btnOpenImportCsvFromSeats" style="padding: 6px 14px; font-size: 12px; background: rgba(245, 158, 11, 0.12); border-color: rgba(245, 158, 11, 0.4); color: var(--color-gold);">
+            <!-- Row 1: Actions & Tier Tabs -->
+            <div class="seat-header-actions-row">
+              <button class="btn btn-secondary btn-open-import-csv btn-header-csv" id="btnOpenImportCsvFromSeats">
                 <i class="fa-solid fa-file-csv"></i> นำเข้าข้อมูล CSV / Excel
               </button>
-                            <button class="btn btn-primary" id="btnOpenGroupWalkInFromSeats" style="padding: 6px 14px; font-size: 12px; background: linear-gradient(135deg, #0d9488 0%, #14b8a6 100%);">
+              <button class="btn btn-primary btn-header-walkin btn-open-walkin" id="btnOpenGroupWalkInFromSeats" title="ลงทะเบียนแขก Walk-in (เดี่ยว / กลุ่ม)">
                 <i class="fa-solid fa-person-walking-dashed-line-arrow-right"></i> + เพิ่ม Walk-in (เดี่ยว / กลุ่ม)
               </button>
               <div class="pavalai-tier-tabs" id="tierTabs">
@@ -178,19 +216,16 @@
                 <button class="tier-tab-btn" data-tier="stalls" id="btnTierStalls">
                   <i class="fa-solid fa-users"></i> ชั้นล่าง Grand Stalls (919)
                 </button>
-                <button class="tier-tab-btn" data-tier="balcony" id="btnTierBalcony">
+                <button class="tier-tab-btn tab-balcony-style" data-tier="balcony" id="btnTierBalcony">
                   <i class="fa-solid fa-crown"></i> ชั้นลอย Royal Balcony (245)
                 </button>
               </div>
             </div>
 
-            <!-- Seat Filter Buttons -->
+            <!-- Row 2: Seat Filter Buttons -->
             <div class="seat-view-controls">
               <button class="seat-filter-btn active" data-filter="all" id="btnFilterSeatAll">
-                <i class="fa-solid fa-border-all"></i> ทุกสถานะ
-              </button>
-              <button class="seat-filter-btn" data-filter="sweet-spot" id="btnFilterSweetSpot">
-                <i class="fa-solid fa-bullseye"></i> Sweet Spot
+                <i class="fa-solid fa-table-cells-large"></i> ทุกสถานะ
               </button>
               <button class="seat-filter-btn" data-filter="vip" id="btnFilterSeatVip">
                 <i class="fa-solid fa-crown"></i> Paragon VIP
@@ -253,11 +288,6 @@
 
               <!-- Main Seating Area -->
               <div class="auditorium-seats-wrap pavalai-seats-wrap">
-                <!-- Sweet Spot Boundary Indicator Overlay -->
-                <div class="sweet-spot-indicator hidden" id="sweetSpotIndicator">
-                  <span class="sweet-spot-badge"><i class="fa-solid fa-star"></i> PRIME ACOUSTIC & VISUAL SWEET SPOT (แถว G-L)</span>
-                </div>
-
                 <!-- Realistic Seats Grid -->
                 <div class="seats-grid realistic-grid pavalai-grid" id="seatsGrid">
                   <!-- Dynamically rendered via JS from pavalai_layout.json -->
@@ -286,57 +316,107 @@
 
             <!-- Pavalai Realistic Legend -->
             <div class="seat-legend realistic-legend pavalai-legend">
-              <div class="legend-item">
-                <div class="legend-seat-sample vip-sample">
-                  <span class="sample-arm"></span>
-                  <span class="sample-body"></span>
-                  <span class="sample-arm"></span>
+              <div class="legend-row-primary">
+                <div class="legend-item">
+                  <div class="legend-seat-sample vip-sample">
+                    <span class="sample-arm"></span>
+                    <span class="sample-body"></span>
+                    <span class="sample-arm"></span>
+                  </div>
+                  <span>Paragon VIP / Sofa (VP, AA, FH, FG)</span>
                 </div>
-                <span>Paragon VIP / Sofa (VP, AA, FH, FG)</span>
-              </div>
-              <div class="legend-item">
-                <div class="legend-seat-sample privilege-sample">
-                  <span class="sample-arm"></span>
-                  <span class="sample-body"></span>
-                  <span class="sample-arm"></span>
+                <div class="legend-item">
+                  <div class="legend-seat-sample privilege-sample">
+                    <span class="sample-arm"></span>
+                    <span class="sample-body"></span>
+                    <span class="sample-arm"></span>
+                  </div>
+                  <span>Privilege Chair / XL (A - M)</span>
                 </div>
-                <span>Privilege Chair / XL (A - M)</span>
-              </div>
-              <div class="legend-item">
-                <div class="legend-seat-sample standard-sample">
-                  <span class="sample-arm"></span>
-                  <span class="sample-body"></span>
-                  <span class="sample-arm"></span>
+                <div class="legend-item">
+                  <div class="legend-seat-sample standard-sample">
+                    <span class="sample-arm"></span>
+                    <span class="sample-body"></span>
+                    <span class="sample-arm"></span>
+                  </div>
+                  <span>Standard Hall (N - X)</span>
                 </div>
-                <span>Standard Hall (N - X)</span>
-              </div>
-              <div class="legend-item">
-                <div class="legend-seat-sample balcony-sample">
-                  <span class="sample-arm"></span>
-                  <span class="sample-body"></span>
-                  <span class="sample-arm"></span>
+                <div class="legend-item">
+                  <div class="legend-seat-sample balcony-sample">
+                    <span class="sample-arm"></span>
+                    <span class="sample-body"></span>
+                    <span class="sample-arm"></span>
+                  </div>
+                  <span>Royal Balcony (FA - FF)</span>
                 </div>
-                <span>Royal Balcony (FA - FF)</span>
-              </div>
-              <div class="legend-item">
-                <div class="legend-seat-sample checkedin-sample">
-                  <span class="sample-arm"></span>
-                  <span class="sample-body"><i class="fa-solid fa-check"></i></span>
-                  <span class="sample-arm"></span>
+                <div class="legend-item">
+                  <div class="legend-seat-sample checkedin-sample">
+                    <span class="sample-arm"></span>
+                    <span class="sample-body"><i class="fa-solid fa-check"></i></span>
+                    <span class="sample-arm"></span>
+                  </div>
+                  <span>เช็คอินหน้างานแล้ว</span>
                 </div>
-                <span>เช็คอินหน้างานแล้ว</span>
-              </div>
-              <div class="legend-item">
-                <div class="legend-seat-sample empty-sample">
-                  <span class="sample-arm"></span>
-                  <span class="sample-body"></span>
-                  <span class="sample-arm"></span>
+                <div class="legend-item">
+                  <div class="legend-seat-sample empty-sample">
+                    <span class="sample-arm"></span>
+                    <span class="sample-body"></span>
+                    <span class="sample-arm"></span>
+                  </div>
+                  <span>ที่นั่งว่าง</span>
                 </div>
-                <span>ที่นั่งว่าง</span>
               </div>
-              <div class="legend-item">
-                <span class="legend-sweet-sample"></span>
-                <span>Sweet Spot Zone</span>
+
+              <!-- Pavalai Category Color Coding Legend (หมวดหมู่โควตา / PIC) -->
+              <div class="legend-row-category" id="seatCategoryLegend">
+                <div class="cat-legend-title-wrap">
+                  <span class="cat-legend-title">
+                    <i class="fa-solid fa-tags"></i> หมวดหมู่โควตา (PIC / Category)
+                  </span>
+                  <span class="cat-legend-hint">คลิกหมวดหมู่เพื่อไฮไลต์เฉพาะที่นั่งโควตานั้น</span>
+                </div>
+                <div class="cat-legend-buttons" id="catLegendButtons">
+                  <button type="button" class="cat-legend-btn active" data-category="all" title="แสดงทุกหมวด">
+                    <span class="cat-legend-badge-color" style="background: linear-gradient(135deg, #443bf6 0%, #ec4899 20%, #ffd500 40%, #00daff 60%, #a4e629 80%, #cfa82b 100%);"></span>
+                    <span class="cat-legend-label">ทั้งหมด</span>
+                    <span class="cat-legend-count" id="catCountAll"></span>
+                  </button>
+                  <button type="button" class="cat-legend-btn" data-category="aninetwork" title="ไฮไลต์ Ani Network">
+                    <span class="cat-legend-badge-color" style="background: #443BF6;"></span>
+                    <span class="cat-legend-label">Ani Network</span>
+                    <span class="cat-legend-count" id="catCountAni"></span>
+                  </button>
+                  <button type="button" class="cat-legend-btn" data-category="idol" title="ไฮไลต์ Idol">
+                    <span class="cat-legend-badge-color" style="background: #EC4899;"></span>
+                    <span class="cat-legend-label">Idol</span>
+                    <span class="cat-legend-count" id="catCountIdol"></span>
+                  </button>
+                  <button type="button" class="cat-legend-btn" data-category="luckydraw" title="ไฮไลต์ Lucky Draw">
+                    <span class="cat-legend-badge-color" style="background: #FFD500;"></span>
+                    <span class="cat-legend-label">Lucky Draw</span>
+                    <span class="cat-legend-count" id="catCountLucky"></span>
+                  </button>
+                  <button type="button" class="cat-legend-btn" data-category="phoenixnext" title="ไฮไลต์ Phoenix Next">
+                    <span class="cat-legend-badge-color" style="background: #00DAFF;"></span>
+                    <span class="cat-legend-label">Phoenix Next</span>
+                    <span class="cat-legend-count" id="catCountPhoenix"></span>
+                  </button>
+                  <button type="button" class="cat-legend-btn" data-category="blessingstudio" title="ไฮไลต์ Blessing Studio">
+                    <span class="cat-legend-badge-color" style="background: #A4E629;"></span>
+                    <span class="cat-legend-label">Blessing Studio</span>
+                    <span class="cat-legend-count" id="catCountBlessing"></span>
+                  </button>
+                  <button type="button" class="cat-legend-btn" data-category="vip" title="ไฮไลต์ VIP">
+                    <span class="cat-legend-badge-color" style="background: #CFA82B;"></span>
+                    <span class="cat-legend-label">VIP</span>
+                    <span class="cat-legend-count" id="catCountVip"></span>
+                  </button>
+                  <button type="button" class="cat-legend-btn" data-category="other" title="ไฮไลต์ อื่นๆ / ไม่ระบุ">
+                    <span class="cat-legend-badge-color" style="background: #475569;"></span>
+                    <span class="cat-legend-label">อื่นๆ / ไม่ระบุ</span>
+                    <span class="cat-legend-count" id="catCountOther"></span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -351,9 +431,6 @@
             </div>
           </div>
         </div>
-
-        <!-- Floating Tooltip Card on Seat Hover -->
-        <div id="seatHoverCard" class="seat-hover-card hidden"></div>
       </section>
 
       <!-- ================= 3. VIEW: รายชื่อแขก (Guest List) ================= -->
@@ -367,12 +444,16 @@
         <div class="table-toolbar">
           <div class="search-box">
             <i class="fa-solid fa-magnifying-glass"></i>
-            <input type="text" id="guestSearchInput" placeholder="ค้นหาตาม Media, Name, Seat หรือ Tel...">
+            <input type="text" id="guestSearchInput" placeholder="ค้นหาตาม Name, Detail, Seat หรือ Tel...">
           </div>
 
           <div class="toolbar-actions">
-            <button class="btn btn-primary" id="btnOpenGroupWalkInFromGuests" style="padding: 6px 14px; font-size: 12px; background: linear-gradient(135deg, #0d9488 0%, #14b8a6 100%);">
+            <button class="btn btn-primary btn-open-walkin btn-header-walkin" id="btnOpenGroupWalkInFromGuests" title="ลงทะเบียนแขก Walk-in">
               <i class="fa-solid fa-person-walking-dashed-line-arrow-right"></i> + เพิ่ม Walk-in
+            </button>
+
+            <button class="btn btn-auto-assign" id="btnAutoAssignSeats" title="จัดที่นั่งว่างติดกันให้แขกที่ยังไม่จัดที่นั่งโดยอัตโนมัติ">
+              <i class="fa-solid fa-wand-magic-sparkles"></i> จัดที่นั่งอัตโนมัติ
             </button>
 
             <select id="filterCheckIn" class="select-dropdown">
@@ -387,6 +468,10 @@
               <option value="unassigned">ยังไม่จัดที่นั่ง</option>
             </select>
 
+            <select id="filterPic" class="select-dropdown">
+              <option value="all">PIC ทั้งหมด</option>
+            </select>
+
             <button class="btn btn-secondary btn-open-import-csv" id="btnOpenImportCsvModal">
               <i class="fa-solid fa-file-csv" style="color: var(--color-gold);"></i> นำเข้าข้อมูล CSV
             </button>
@@ -399,30 +484,67 @@
           </div>
         </div>
 
+        <!-- Quick Filter Tabs -->
+        <div class="guest-stat-tabs" id="guestStatTabs">
+          <button class="guest-tab-chip active" data-tab-filter="all">
+            <i class="fa-solid fa-users"></i> ทั้งหมด <span class="badge-count" id="tabCountAll">0</span>
+          </button>
+          <button class="guest-tab-chip" data-tab-filter="unassigned">
+            <i class="fa-solid fa-clock"></i> ยังไม่จัดที่นั่ง <span class="badge-count" id="tabCountUnassigned">0</span>
+          </button>
+          <button class="guest-tab-chip" data-tab-filter="assigned">
+            <i class="fa-solid fa-chair"></i> จัดที่นั่งแล้ว <span class="badge-count" id="tabCountAssigned">0</span>
+          </button>
+          <button class="guest-tab-chip" data-tab-filter="checked-in">
+            <i class="fa-solid fa-circle-check"></i> เช็คอินแล้ว <span class="badge-count" id="tabCountCheckedIn">0</span>
+          </button>
+          <button class="guest-tab-chip" data-tab-filter="not-checked">
+            <i class="fa-solid fa-circle-dot"></i> รอเช็คอิน <span class="badge-count" id="tabCountNotChecked">0</span>
+          </button>
+        </div>
+
         <div class="two-column-layout">
           <!-- Left: Guest Table -->
           <div class="table-container">
             <table class="guest-table">
               <thead>
                 <tr>
-                  <th style="width: 24%;">Media (สื่อ / สังกัด)</th>
-                  <th style="width: 22%;">Name (ชื่อแขก)</th>
-                  <th style="width: 12%; text-align: center;">Participant</th>
-                  <th style="width: 18%;">Seat (ที่นั่ง)</th>
-                  <th style="width: 12%; text-align: center;">Sign (เช็คอิน)</th>
-                  <th style="width: 12%;">Tel (เบอร์โทร)</th>
+                  <th style="width: 18%;">Name (ชื่อแขก)</th>
+                  <th id="thColFollower" style="width: 10%; cursor: pointer; user-select: none;" title="คลิกเพื่อเรียงลำดับตาม Follower">
+                    Follower <i class="fa-solid fa-sort" id="iconSortFollower" style="font-size: 11px; margin-left: 2px; opacity: 0.6;"></i>
+                  </th>
+                  <th style="width: 10%;">PIC (ผู้ดูแล)</th>
+                  <th style="width: 24%;">Detail (รายละเอียด)</th>
+                  <th style="width: 7%; text-align: center;">Participant</th>
+                  <th style="width: 11%;">Seat (ที่นั่ง)</th>
+                  <th style="width: 10%;">Tel (เบอร์โทร)</th>
+                  <th style="width: 10%; text-align: center;">Sign (เช็คอิน)</th>
                 </tr>
               </thead>
               <tbody id="guestTableBody">
                 <!-- Dynamically populated via JS -->
               </tbody>
             </table>
+            <!-- Pagination Controls -->
+            <div class="guest-pagination-bar" id="guestPaginationBar">
+              <div class="pagination-info" id="paginationInfo">แสดงรายการที่ 0 - 0 จาก 0 รายการ</div>
+              <div class="pagination-controls" id="paginationControls"></div>
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <span>แสดง:</span>
+                <select id="guestPageSizeSelect" class="select-dropdown" style="padding: 2px 8px; font-size: 12px;">
+                  <option value="25" selected>25 แถว</option>
+                  <option value="50">50 แถว</option>
+                  <option value="100">100 แถว</option>
+                  <option value="all">ทั้งหมด</option>
+                </select>
+              </div>
+            </div>
           </div>
 
           <!-- Right: Guest Detail Panel -->
           <div class="side-panel" id="guestSidePanel">
             <div class="panel-placeholder" id="guestPanelPlaceholder">
-              <p>เลือกแขกจากตารางด้านซ้ายเพื่อดูและจัดการข้อมูล Media, Name, Participant, Seat, Sign และ Tel</p>
+              <p>เลือกแขกจากตารางด้านซ้ายเพื่อดูและจัดการข้อมูล Name, Detail, Participant, Seat, Tel และ Sign</p>
             </div>
             <div class="panel-content hidden" id="guestPanelContent">
               <!-- Dynamically populated when a guest is clicked -->
@@ -607,12 +729,12 @@
       <form id="formAddGuest" class="modal-form">
         <div class="form-row">
           <div class="form-group">
-            <label>Media (สื่อ / สังกัด / เพจ) *</label>
-            <input type="text" id="addGuestOrg" required placeholder="เช่น akai peanut, Akibatan, Daily news">
-          </div>
-          <div class="form-group">
             <label>Name (ชื่อแขก / ผู้ติดต่อ) *</label>
             <input type="text" id="addGuestName" required placeholder="เช่น พี่นัท, บดีศร, ทีมงาน">
+          </div>
+          <div class="form-group">
+            <label>Detail (รายละเอียด / สังกัด)</label>
+            <input type="text" id="addGuestOrg" placeholder="เช่น akai peanut, Akibatan, Daily news">
           </div>
         </div>
 
@@ -639,8 +761,20 @@
 
         <div class="form-row">
           <div class="form-group">
-            <label>Tel (เบอร์โทรศัพท์)</label>
-            <input type="tel" id="addGuestPhone" placeholder="08x-xxx-xxxx">
+            <label>Follower (จำนวนผู้ติดตาม)</label>
+            <input type="number" id="addGuestFollower" placeholder="เช่น 1200000" min="0">
+          </div>
+          <div class="form-group">
+            <label>PIC (ผู้ดูแล/ผู้ประสานงาน)</label>
+            <input type="text" id="addGuestPic" placeholder="เช่น Ani Network">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Tel (เบอร์โทรศัพท์ 10 หลัก)</label>
+            <input type="tel" id="addGuestPhone" placeholder="เช่น 0812345678">
+            <div id="addGuestPhoneError" class="form-input-error hidden"><i class="fa-solid fa-circle-exclamation"></i> เบอร์โทรต้องเป็นตัวเลข 10 หลัก (เช่น 0812345678)</div>
           </div>
           <div class="form-group">
             <label>Sign (สถานะเช็คอินหน้างาน)</label>
@@ -669,7 +803,7 @@
 
       <div style="padding: 20px 24px; overflow-y: auto; flex: 1;">
         <div class="import-instructions">
-          <p>รองรับหัวคอลัมน์: <strong>NO, Media, Name, Participant, Seat, Sign, Tel</strong> (สามารถอัปโหลดไฟล์ <code>.csv</code> หรือ Copy จาก Google Sheets / Excel มาวางได้ทันที)</p>
+          <p>รองรับหัวคอลัมน์: <strong>Name (ชื่อสื่อ), Follower, PIC, Participant (จำนวน), Detail (รายละเอียด/ชื่อผู้รับ), SEAT Value (ที่นั่ง)</strong> หรือรูปแบบมาตรฐานทั่วไป (Copy จาก Google Sheets / Excel มาวางได้ทันที)</p>
         </div>
 
         <div class="import-tabs">
@@ -681,10 +815,10 @@
         <div class="import-tab-content" id="tabContentPaste">
           <textarea id="importCsvTextarea" class="import-textarea" rows="7" placeholder="วางข้อมูลที่คัดลอกจาก Google Sheets หรือ Excel ที่นี่...
 ตัวอย่าง:
-NO	Media	Name	Participant	Seat	Sign	Tel
-1	akai peanut	พี่นัท	2	B16-B17		081-xxx-xxxx
-2	Akibatan	บดีศร	2	E7-E8		089-xxx-xxxx
-3	Algorhythm Project	ทีมงาน	1	F10		082-xxx-xxxx"></textarea>
+Name	Detail	Participant	Seat	Tel
+พี่นัท	akai peanut	2	B16-B17	081-xxx-xxxx
+บดีศร	Akibatan	2	E7-E8	089-xxx-xxxx
+ทีมงาน	Algorhythm Project	1	F10	082-xxx-xxxx"></textarea>
         </div>
 
         <!-- Tab 2: File Upload -->
@@ -710,6 +844,18 @@ NO	Media	Name	Participant	Seat	Sign	Tel
           </label>
         </div>
 
+        <label class="import-filter-toggle" id="labelFilterConfirmedOnly">
+          <input type="checkbox" id="chkImportConfirmedOnly" checked>
+          <span><i class="fa-solid fa-filter" style="color: var(--color-gold); margin-right: 4px;"></i> <strong>นำเข้าเฉพาะแขกที่ยืนยันเข้าร่วม</strong> (ตัดรายการว่าง/ยังไม่ตอบรับออกอัตโนมัติ)</span>
+        </label>
+
+        <!-- Summary Statistics Pills for File -->
+        <div class="import-summary-bar hidden" id="importSummaryBar">
+          <div class="stat-pill confirmed"><i class="fa-solid fa-circle-check"></i> ยืนยันเข้าร่วม: <strong id="sumConfirmedCount">0</strong> รายการ (<span id="sumConfirmedSeats">0</span> ที่นั่ง)</div>
+          <div class="stat-pill empty"><i class="fa-solid fa-clock"></i> ยังไม่ตอบรับ/ว่าง: <strong id="sumEmptyCount">0</strong> รายการ</div>
+          <div class="stat-pill declined"><i class="fa-solid fa-circle-xmark"></i> สละสิทธิ์/ไม่สะดวก: <strong id="sumDeclinedCount">0</strong> รายการ</div>
+        </div>
+
         <!-- Preview Summary -->
         <div class="import-preview-wrapper hidden" id="importPreviewWrapper">
           <div class="preview-header">
@@ -721,12 +867,14 @@ NO	Media	Name	Participant	Seat	Sign	Tel
               <thead>
                 <tr>
                   <th>ลำดับ</th>
-                  <th>สื่อ / สังกัด</th>
-                  <th>ชื่อแขก</th>
-                  <th>โควตา</th>
-                  <th>ที่นั่งที่จัดไว้ (แตกช่วงแล้ว)</th>
-                  <th>เบอร์ติดต่อ</th>
-                  <th>เช็คอิน</th>
+                  <th>Name (ชื่อผู้รับ)</th>
+                  <th>สื่อ (Media)</th>
+                  <th>Follower</th>
+                  <th>PIC</th>
+                  <th>จำนวน</th>
+                  <th>Seat (ที่นั่ง)</th>
+                  <th>Tel (เบอร์โทร)</th>
+                  <th>สถานะ</th>
                 </tr>
               </thead>
               <tbody id="previewTableBody"></tbody>
@@ -845,7 +993,7 @@ NO	Media	Name	Participant	Seat	Sign	Tel
   <div class="modal-overlay hidden" id="modalWalkInSeat">
     <div class="modal-box" style="width: 520px; max-width: 95vw;">
       <div class="modal-header">
-        <h3 class="modal-title"><i class="fa-solid fa-person-walking-dashed-line-arrow-right" style="color: var(--color-teal);"></i> เพิ่มแขก Walk-in จากผังที่นั่ง</h3>
+        <h3 class="modal-title" id="walkInModalTitle"><i class="fa-solid fa-person-walking-dashed-line-arrow-right" style="color: var(--color-teal);"></i> เพิ่มแขก Walk-in (เดี่ยว / กลุ่ม)</h3>
         <button class="btn-close" id="btnCloseWalkInModal"><i class="fa-solid fa-xmark"></i></button>
       </div>
       <form id="formWalkIn" class="modal-form">
@@ -897,8 +1045,8 @@ NO	Media	Name	Participant	Seat	Sign	Tel
             <input type="text" id="walkInName" required placeholder="ชื่อแขกที่มาหน้างาน">
           </div>
           <div class="form-group">
-            <label>Media (สื่อ / สังกัด / เพจ)</label>
-            <input type="text" id="walkInMedia" placeholder="เช่น Walk-in แขกทั่วไป">
+            <label>Detail (รายละเอียด / สังกัด)</label>
+            <input type="text" id="walkInMedia" placeholder="เช่น Walk-in แขกทั่วไป, ผู้ติดตาม">
           </div>
         </div>
 
@@ -908,8 +1056,9 @@ NO	Media	Name	Participant	Seat	Sign	Tel
             <input type="number" id="walkInParticipant" min="1" max="20" value="1" required>
           </div>
           <div class="form-group">
-            <label>Tel (เบอร์โทรศัพท์)</label>
-            <input type="tel" id="walkInPhone" placeholder="08x-xxx-xxxx">
+            <label>Tel (เบอร์โทรศัพท์ 10 หลัก)</label>
+            <input type="tel" id="walkInPhone" placeholder="เช่น 0812345678">
+            <div id="walkInPhoneError" class="form-input-error hidden"><i class="fa-solid fa-circle-exclamation"></i> เบอร์โทรต้องเป็นตัวเลข 10 หลัก (เช่น 0812345678)</div>
           </div>
         </div>
 
@@ -1043,8 +1192,9 @@ NO	Media	Name	Participant	Seat	Sign	Tel
           </div>
           <div id="preCheckInWarningText" style="margin-top: 4px;"></div>
           <div id="preCheckInPhoneInputRow" class="hidden" style="margin-top: 8px;">
-            <label style="font-size: 11.5px; color: var(--text-muted);">เพิ่มเบอร์โทรศัพท์ตอนนี้:</label>
-            <input type="tel" id="preCheckInPhoneInput" class="screening-select" style="width: 100%; max-width: 100%; margin-top: 4px;" placeholder="08x-xxx-xxxx">
+            <label style="font-size: 11.5px; color: var(--text-muted);">เพิ่มเบอร์โทรศัพท์ตอนนี้ (10 หลัก):</label>
+            <input type="tel" id="preCheckInPhoneInput" class="screening-select" style="width: 100%; max-width: 100%; margin-top: 4px;" placeholder="เช่น 0812345678">
+            <div id="preCheckInPhoneError" class="form-input-error hidden"><i class="fa-solid fa-circle-exclamation"></i> เบอร์โทรต้องเป็นตัวเลข 10 หลัก (เช่น 0812345678)</div>
           </div>
         </div>
 
@@ -1069,7 +1219,25 @@ NO	Media	Name	Participant	Seat	Sign	Tel
           <!-- Populated via JS -->
         </div>
 
-        <div class="form-group">
+        <!-- Interactive Seats Checklist Section -->
+        <div class="form-group" id="partialSeatsSection">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <label style="font-size: 13px; font-weight: 600; color: #fff; margin: 0;">
+              <i class="fa-solid fa-chair" style="color: var(--color-teal); margin-right: 4px;"></i> 
+              เลือกที่นั่งที่มาถึงจริง (Checked-in Seats):
+            </label>
+            <div style="display: flex; gap: 6px;">
+              <button type="button" class="btn btn-secondary" id="btnPartialSelectAll" style="font-size: 11px; padding: 2px 8px; border-radius: 4px;">เลือกทั้งหมด</button>
+              <button type="button" class="btn btn-secondary" id="btnPartialDeselectAll" style="font-size: 11px; padding: 2px 8px; border-radius: 4px;">ยกเลิกทั้งหมด</button>
+            </div>
+          </div>
+          <div id="partialSeatsChecklist" class="partial-seats-checklist">
+            <!-- Populated via JS with seat checkboxes -->
+          </div>
+        </div>
+
+        <!-- Fallback range slider for guests without specific seats -->
+        <div class="form-group hidden" id="partialCountSection">
           <label style="font-size: 13px; font-weight: 600;">จำนวนคนที่มาถึงหน้างานแล้ว:</label>
           <div style="display: flex; align-items: center; gap: 12px; margin-top: 8px;">
             <input type="range" id="partialCountRange" min="0" max="10" value="1" style="flex: 1; accent-color: var(--color-teal);">
@@ -1124,6 +1292,9 @@ NO	Media	Name	Participant	Seat	Sign	Tel
     </div>
   </div>
 
+  <!-- Floating Tooltip Card on Seat Hover (Portal Pattern: Direct child of <body> to avoid ancestor transform/containing block mismatch) -->
+  <div id="seatHoverCard" class="seat-hover-card hidden"></div>
+
   <!-- Floating Undo Toast Banner -->
   <div id="floatingUndoBanner" class="floating-undo-banner hidden">
     <div class="undo-content">
@@ -1140,8 +1311,9 @@ NO	Media	Name	Participant	Seat	Sign	Tel
   </div>
 
   <!-- Scripts -->
-  <script src="js/api.js"></script>
-  <script src="js/seat-picker.js"></script>
-  <script src="js/app.js"></script>
+  <script src="/js/api.js"></script>
+  <script src="/js/seatCategoryColors.js"></script>
+  <script src="/js/seat-picker.js"></script>
+  <script src="/js/app.js"></script>
 </body>
 </html>

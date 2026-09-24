@@ -161,3 +161,16 @@ exports.getAllStatus = async (req, res, next) => {
     next(error);
   }
 };
+
+exports.autoAssign = async (req, res, next) => {
+  try {
+    const { screeningId, guestIds } = req.body;
+    if (!screeningId) {
+      return res.status(400).json({ success: false, message: 'กรุณาระบุ screeningId' });
+    }
+    const result = await seatService.autoAssignUnseatedGuests(screeningId, guestIds);
+    res.json(result);
+  } catch (error) {
+    next(error);
+  }
+};

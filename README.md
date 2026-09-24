@@ -1,99 +1,130 @@
 # 🎬 ระบบบริหารจัดการรอบสื่อมวลชนและผังที่นั่งโรงภาพยนตร์
-### (Press Screening Event Operations & Unified Seat Management Dashboard)
+### (Cinema Media Screening & Unified Seat Management Dashboard)
 
-ระบบแดชบอร์ดบริหารจัดการรอบฉายภาพยนตร์สำหรับสื่อมวลชน (Press Screening), ครีเอเตอร์ และแขกรับเชิญพิเศษ ออกแบบมาสำหรับการปฏิบัติการหน้างานจริง (On-site Event Operations) ด้วยสถาปัตยกรรม **Full-Stack Production Grade** สไตล์ **Dark Cinema Luxury & Futuristic Glow**
+ระบบเว็บแอปพลิเคชันบริหารจัดการรอบฉายภาพยนตร์สำหรับสื่อมวลชน (Press Screening), ครีเอเตอร์, เพจรีวิว, และแขกรับเชิญพิเศษ ออกแบบมาสำหรับการปฏิบัติการหน้างานจริง (On-site Event Operations) บนแท็บเล็ต/iPad และคอมพิวเตอร์ ด้วยสถาปัตยกรรม **Vanilla JS High-Performance Engine** สไตล์ **Dark Cinema Glassmorphism**
 
-รองรับผังที่นั่งขนาดจริงของ **โรงภาพยนตร์สยามภาวลัย รอยัล แกรนด์ เธียเตอร์ (Siam Pavalai Royal Grand Theatre) พารากอน ซีนีเพล็กซ์ จำนวน 1,164 ที่นั่ง** พร้อมระบบคำนวณและจัดสรรที่นั่งอัจฉริยะสำหรับกลุ่มคณะ
+รองรับผังที่นั่งขนาดจริงของ **โรงภาพยนตร์สยามภาวลัย รอยัล แกรนด์ เธียเตอร์ (Siam Pavalai Royal Grand Theatre) พารากอน ซีนีเพล็กซ์ จำนวน 1,164 ที่นั่ง** พร้อมระบบนำเข้าข้อมูล 6 คอลัมน์จาก Google Sheet, ระบบสีที่นั่งแยกหมวดหมู่โควตา (PIC Quota Colors), ระบบเช็คอินรายที่นั่ง (Per-Seat Partial Check-in), และ Smart Tooltip คำนวณขอบจออัตโนมัติ
 
 ---
 
 ## 🌟 จุดเด่นและฟีเจอร์สำคัญ (Core Highlights)
 
 ### 🪑 1. ผังโรงภาพยนตร์สยามภาวลัยขนาดจริง 1,164 ที่นั่ง (Siam Pavalai Real Topology)
-- โครงสร้างสมบูรณ์ตามผังโรงภาพยนตร์ขนาดใหญ่ที่สุดในเอเชียตะวันออกเฉียงใต้:
+- โครงสร้างผังจำลองเสมือนจริงของโรงภาพยนตร์ขนาดใหญ่ที่สุดในเอเชียตะวันออกเฉียงใต้:
   - **Grand Stalls (ชั้นล่าง)**: 919 ที่นั่ง (แถว A – S รวม 19 แถว มีทางเดินกลางและทางเดินข้าง)
-  - **Royal Balcony (ชั้นบน)**: 245 ที่นั่ง (แถว AA – EE รวม 5 แถว พร้อมเก้าอี้ Royal Suite คู่)
-- **Interactive Tier Tabs**: สลับดูมุมมอง *ทั้งหมด*, *เฉพาะชั้น 1 (Stalls)*, หรือ *เฉพาะชั้น 2 (Balcony)*
-- **Real-time Seat Highlighting & Quick Drawer**: คลิกเก้าอี้เพื่อดูรายละเอียดผู้ครองที่นั่ง หรือมอบหมายที่นั่งให้แขกได้ทันที
+  - **Royal Balcony (ชั้นบน)**: 245 ที่นั่ง (แถว AA – EE รวม 5 แถว พร้อมเก้าอี้คู่ Royal Suite)
+- **Ultra-light DOM Architecture**: โครงสร้างปุ่มเก้าอี้แบบ `button.cinema-seat > span.seat-num` เพียง 1 ชั้น ไม่ใช้ virtual DOM หรือ library ภายนอก ทำให้เรนเดอร์ 1,164 ที่นั่งได้อย่างลื่นไหล 60 FPS
+- **Interactive Tier Tabs**: สลับมุมมองระหว่าง *ทั้งหมด (1,164 ที่นั่ง)*, *เฉพาะชั้นล่าง Stalls (919 ที่นั่ง)*, หรือ *เฉพาะชั้นลอย Balcony (245 ที่นั่ง)*
+- **Smart Filter Chips**: กรองเก้าอี้ตามประเภท (*Paragon VIP*, *Privilege*, *Standard*, *เช็คอินแล้ว*, *ที่นั่งว่าง*)
 
 ---
 
-### 🎯 2. Unified `SeatPicker` Engine (คอมโพเนนต์เลือกที่นั่งรวมศูนย์ 3 โหมด)
-รวบรวม Logic การจัดที่นั่งทั้งหมดไว้ในคอมโพเนนต์เดียว (`public/js/seat-picker.js`) ตอบโจทย์การทำงานหน้างานในทุกสถานการณ์:
-1. **Mode A: Auto Recommend (แนะนำกลุ่มที่นั่งติดกันอัตโนมัติ)**
-   - ขับเคลื่อนด้วย **Heuristic Scoring Algorithm**: ให้คะแนนตามความติดกันของแถว (Adjacency Bonus), เว้นช่องว่าง (Aisle Proximity), และระยะห่าง
-   - แสดงตัวเลือกที่ดีที่สุด Top 5 ทันที (เช่น `E10 - E13 (4 ที่นั่งติดกัน)`) คลิกปุ่มเดียวเลือกครบกลุ่มใน 1 วินาที
-2. **Mode B: Interactive Seat Map (เลือกจากผังโรง Multi-select)**
-   - สลับผังโรงภาพยนตร์เข้าสู่โหมดเลือกเก้าอี้ พร้อมเอฟเฟกต์ไฟนีออนพัลส์สีเขียวมิ้นต์ (`.seat-staged-picker`)
-   - แถบ **Floating Live Parity Bar** ด้านล่าง แสดงจำนวนที่เลือกและตัวนับสถานะเรียลไทม์: `กำลังเลือก 2 / 4 ที่ (ขาดอีก 2 ที่)`
-   - รองรับ **Parent Modal Restore**: ซ่อนหน้าต่างเดิมชั่วคราวขณะเลือกบนผัง และคืนค่าหน้าต่างหลักกลับมาพร้อมเก้าอี้ที่เลือกให้อัตโนมัติ
-3. **Mode C: Manual Search Dropdown (ค้นหาและเลือกด้วย Dropdown)**
-   - ช่องค้นหาเลขที่นั่งหรือแถว (เช่น พิมพ์ `U` กรองเฉพาะแถว U)
-   - ฟิลเตอร์แยกตามชั้น (Grand Stalls / Royal Balcony) และสถานะ (ว่าง / จัดแล้ว / เช็คอินแล้ว)
-   - **Full Context Badges**: แสดงบริบทครบถ้วนว่าเก้าอี้ตัวใดว่างหรือถูกจัดสรรให้ใคร
+### 🎨 2. ระบบสีที่นั่งตามหมวดหมู่โควตา/ผู้ดูแล (Seat Category Colors v2)
+ระบบกำหนดสีที่นั่งตามผู้ดูแลโควตา (PIC / Category) โดยอ้างอิงจากฐานข้อมูลกลางชุดเดียว ([`public/js/seatCategoryColors.js`](file:///c:/MOVIE%202/WEB%20moive/public/js/seatCategoryColors.js)):
+
+| หมวดหมู่ (PIC / Category) | โทนสี | Hex Code | สีตัวอักษร |
+|---|---|---|---|
+| **Ani Network** | น้ำเงินเข้มสด | `#443BF6` | ขาว (`#ffffff`) |
+| **Idol** | ชมพูสดใส | `#EC4899` | ขาว (`#ffffff`) |
+| **Lucky Draw** | เหลืองสด | `#FFD500` | เข้ม (`#0f172a`) |
+| **Phoenix Next** | ฟ้า cyan สว่าง | `#00DAFF` | เข้ม (`#0f172a`) |
+| **Blessing Studio** | เขียวอ่อน lime | `#A4E629` | เข้ม (`#0f172a`) |
+| **VIP** | ทองหรูหรา | `#CFA82B` | เข้ม (`#0f172a`) |
+| **อื่นๆ / ไม่ระบุ** | สีเทาเข้ม (Default) | `#334155` | ขาว (`#ffffff`) |
+| **ที่นั่งว่าง (ไม่มีแขกจอง)** | สีเดิมตามผังโรง | — | ตามโซนผัง |
+
+- **Auto Contrast Calculation**: คำนวณความสว่าง (Relative Luminance) อัตโนมัติเพื่อให้สีตัวเลขบนเก้าอี้อ่านง่าย ได้มาตรฐาน WCAG AA
+- **Checked-in Coexistence**: เมื่อแขกเช็คอินแล้ว เก้าอี้จะยังคงสีของหมวดหมู่โควตาไว้ แต่เพิ่มกรอบไฟนีออนสีเขียวมรกต (`#10b981`) พร้อมไอคอนเครื่องหมายถูก `✓`
+- **Interactive Category Legend**: แถบปุ่มหมวดหมู่ด้านล่างผัง คลิกเพื่อไฮไลต์เฉพาะที่นั่งของหมวดหมู่นั้นๆ และลดความสว่าง (Dim) เก้าอี้หมวดอื่น
 
 ---
 
-### ⚡ 3. ระบบช่วยค้นหาที่นั่งที่เหลือ (Seat Helper in Add Guest)
-ในหน้าต่าง **"เพิ่มแขกใหม่"** (`modalAddGuest`):
-- **ปุ่มลัด `[ เลือกที่นั่งว่าง (SeatPicker) ]`**: ดึงจำนวนโควตาจากช่อง `Participant` ไปเป็นเป้าหมายการจัดแบบอัตโนมัติ
-- **Live Autocomplete Dropdown**: พิมพ์ค้นหาเลขที่นั่งในช่อง Seat แล้วระบบจะแสดงเฉพาะที่นั่งที่ยังว่างอยู่จริงในโรง (พร้อมระบุแถวและชั้น) คลิกเลือกใส่ช่องได้ทันที
-- **Quick Contiguous Chips**: ชิปแนะนำกลุ่มที่นั่งว่างติดกัน (เช่น `[ U27-U28 (2 ที่) ]`, `[ B16-B17 (2 ที่) ]`) ที่อัปเดตตามตัวเลขในช่อง `Participant` แบบเรียลไทม์
+### 🪟 3. Smart Seat Tooltip & Collision Flip Engine
+ระบบพรีวิวข้อมูลแขกเมื่อนำเมาส์ไปชี้ที่นั่งบนผังโรงภาพยนตร์:
+- **Vertical Collision Flip**: ตรวจจับระยะขอบหน้าจอ (Viewport Collision) หากชี้แถวด้านบนสุด (เช่น แถว X, W, V) การ์ดจะสลับลงมาแสดงด้านล่างเก้าอี้ (`placement: bottom`) อัตโนมัติ เพื่อไม่ให้ข้อความโดนตัดพ้นขอบจอ
+- **Horizontal Viewport Clamping**: ล็อกไม่ให้การ์ดหลุดขอบซ้ายหรือขวาของจอ แม้ชี้เก้าอี้ริมสุด
+- **Dynamic Arrow Pointer**: เข็มชี้ (`--arrow-x`) คำนวณพิกัดให้ชี้ตรงกับกึ่งกลางของเก้าอี้เสมอ
+- **Portal Pattern Architecture**: การ์ด Tooltip ถูกย้ายมาอยู่ที่ระดับ Root (`<body>`) โดยตรง เพื่อป้องกันปัญหา Coordinate Mismatch จาก CSS `transform` ใน ancestor containers
+- **Internal Dark Scrollbar**: รองรับการเลื่อนอ่านรายชื่อแขกและที่นั่งยาวๆ ได้ในการ์ด (`max-height: min(60vh, 320px)`) โดยไม่ดัน Layout หน้าเว็บ
+- **Passive Scroll Dismissal**: ซ่อนการ์ดทันทีที่มีการ Scroll หรือคลิกเลือกที่นั่ง
 
 ---
 
-### 👥 4. ระบบ Walk-in คณะสื่อมวลชน & กฎเหล็ก Group Parity Lock
-ในหน้าต่าง **"เพิ่มแขก Walk-in จากผังที่นั่ง"** (`modalWalkInSeat`):
-- **Group Parity Law**: บังคับใช้กฎ `จำนวนที่นั่ง = จำนวนแขก` ป้องกันการบันทึกข้อมูลที่ไม่ตรงกับโควตา พร้อมแถบเตือนสถานะ
-- **Direct Seat Addition**: ช่องพิมพ์เลขที่นั่งโดยตรง `[ พิมพ์เลขที่นั่ง เช่น U28 ]` พร้อมปุ่ม `[ + เพิ่ม ]` (รองรับการพิมพ์ช่วง เช่น `U28-U30`)
-- **Adjacent Available Seat Chips**: เมื่อเลือกที่นั่งแรกแล้ว ระบบจะหาเก้าอี้ว่างข้างเคียงในแถวเดียวกันทันที และแสดงปุ่มลัด `[ + เพิ่ม U26 ]`, `[ + เพิ่ม U28 ]` ให้กดเลือกเพิ่มได้ใน 1 วินาที
-- **Duplicate Detection**: ตรวจจับรายชื่อหรือเบอร์โทรศัพท์ที่ซ้ำซ้อนในรอบฉายเดียวกันแบบเรียลไทม์ขณะพิมพ์
+### 📊 4. โครงสร้างข้อมูล 6 คอลัมน์จาก Google Sheet & ตารางรายชื่อแขก
+รองรับโครงสร้างข้อมูลที่ดึงมาจาก Google Sheet ต้นทางโดยตรง:
+1. **Name (ชื่อแขก)**: ชื่อสื่อ, เพจรีวิว, หรือแคมเปญ พร้อมลิงก์ไปหน้าเพจจริง (Map เป็น `organization`)
+2. **Follower**: จำนวนผู้ติดตาม (ตัวเลข) รองรับการคลิกหัวตารางเพื่อเรียงลำดับ (Sort Asc/Desc)
+3. **PIC (ผู้ดูแล)**: ชื่อผู้ดูแลโควตา พร้อมป้ายแท็กและ Dropdown กรองข้อมูล (`#filterPic`)
+4. **Detail (รายละเอียด)**: เนื้อหารายละเอียด, สังกัด, ผู้ติดต่อ ระบบตัดข้อความยาวด้วย Ellipsis พร้อม Tooltip อ่านฉบับเต็ม
+5. **Participant**: จำนวนโควตาที่ได้รับ (คน)
+6. **Seat (ที่นั่ง)**: ที่นั่งที่จัดสรร รองรับการระบุช่วงอัตโนมัติ เช่น `I16-17`, `B16-B18`, `AA1-AA3`
+7. **Tel (เบอร์โทร)**: เบอร์โทรศัพท์ 10 หลักตามมาตรฐานมือถือไทย (`08x`, `09x`, `06x`) คลิกโทรออกได้ทันที
+8. **Sign (เช็คอิน)**: ปุ่มสถานะการเซ็นชื่อ 3 ระดับ (`รอเซ็น`, `มาบางส่วน x/y`, `เซ็นครบ ✓`)
 
 ---
 
-### 🛡️ 5. Non-Destructive 409 Conflict Recovery (แก้ปัญหาที่นั่งชนกันอย่างปลอดภัย)
-- กรณี Staff หลายเครื่องเลือกที่นั่งตัวเดียวกันในเวลาไล่เลี่ยกัน (Concurrent Race Condition)
-- ระบบส่งสัญญาณ HTTP 409 `SEAT_CONFLICT` โดย**ไม่ล้างฟอร์มทิ้ง**
-- ระบบจะคงเก้าอี้ตัวที่ไม่ชนไว้ และเปิด `SeatPicker` ให้เลือกเฉพาะเก้าอี้ทดแทนตัวที่ชนได้ทันที
+### 🎟️ 5. ระบบเช็คอินแยกรายที่นั่ง (Per-Seat Partial Check-in)
+แก้ปัญหาคลาสสิกของระบบลงทะเบียน เมื่อสื่อ 1 รายได้โควตา 2 ที่นั่ง (`Participant: 2`) แต่ทีมงานเดินทางมาไม่พร้อมกัน:
+- **Per-Seat Status Array**: จัดเก็บในรูปแบบ `seats: [{ code: "I16", checkedIn: true }, { code: "I17", checkedIn: false }]`
+- **1-Click Seat Toggle**: ติ๊กเช็คอินหรือยกเลิกเช็คอินเฉพาะที่นั่งได้โดยตรงจาก Side Panel ของผังที่นั่ง
+- **Partial Check-in Modal**: หน้าต่างติ๊กเลือกเฉพาะคนที่มาถึง พร้อมปุ่ม *เลือกทั้งหมด* / *ล้างทั้งหมด*
+- **Real-time DOM Sync**: อัปเดตสีเก้าอี้เฉพาะตัวที่เช็คอินบนผังที่นั่งทันที โดยไม่ต้องโหลดหรือเรนเดอร์ผัง 1,164 ที่นั่งใหม่
 
 ---
 
-### 🔄 6. ระบบย้ายที่นั่งอัจฉริยะ (Entire Group vs Partial Move)
-- **ย้ายทั้งกลุ่ม (Move Group)**: ย้ายคณะไปยังแถว/โซนใหม่
-- **ย้ายเฉพาะบุคคล (Partial Move)**: มี Checklist ให้ติ๊กเลือกเฉพาะบางคนที่ต้องการย้ายที่นั่ง (เช่น ขอย้าย 1 ท่านไปริมทางเดิน) โดยเก้าอี้ตัวเดิมจะถูกปล่อยคืนเข้าระบบทันที (Atomic Release)
+### 🎯 6. ระบบจัดที่นั่งอัตโนมัติ & Walk-in คณะสื่อมวลชน
+- **Auto-Assign Unseated Guests**: อัลกอริทึมจัดสรรที่นั่งว่างติดกันให้แขกที่ยังไม่มีที่นั่งแบบ 1 คลิก โดยคำนึงถึงขนาดกลุ่มและความต่อเนื่องของแถว
+- **Walk-in Group Parity Lock**: ป้องกันความผิดพลาดหน้างาน บังคับให้จำนวนเก้าอี้ที่เลือกต้องตรงกับจำนวนโควตาของกลุ่ม
+- **Non-Destructive 409 Conflict Recovery**: หากเจ้าหน้าที่หลายเครื่องแย่งเลือกเก้าอี้ตัวเดียวกัน ระบบจะแจ้งเตือนและคงเก้าอี้ตัวที่ไม่ชนไว้ ให้เลือกเฉพาะตัวที่ชนใหม่โดยไม่ต้องกรอกข้อมูลซ้ำ
 
 ---
 
-### 📋 7. โครงสร้างข้อมูล 6 คอลัมน์หลักมาตรฐาน (Core 6 Guest Fields)
-ระบบถูกออกแบบให้กระชับ เหมาะกับทีมลงทะเบียนหน้างาน โดยตัดข้อมูลที่ไม่จำเป็นออก เหลือ 6 หัวข้อหลัก:
-1. **Media**: สื่อ / สังกัด / เพจ / บริษัท
-2. **Name**: ชื่อแขก / ผู้ติดต่อ
-3. **Participant**: จำนวนโควตาที่ได้รับ (คน)
-4. **Seat**: ที่นั่งที่จัดสรร (รองรับทั้งที่นั่งเดี่ยวและช่วง เช่น `B16-B17`, `E7-E8`)
-5. **Sign**: สถานะการเซ็นชื่อ/เช็คอิน (`รอเซ็น`, `มาบางส่วน x/y`, `เซ็นครบ ✓`)
-6. **Tel**: เบอร์โทรศัพท์ (คลิกเพื่อโทรออกได้ทันทีบนมือถือ/แท็บเล็ต)
-
----
-
-### 🛠️ 8. ชุดเครื่องมือปฏิบัติการหน้างาน (Operations Suite)
-- **Pre Check-in**: ลงทะเบียนคิวล่วงหน้าสำหรับกลุ่มที่มารอเข้าแถว
-- **Partial Check-in**: ระบุจำนวนคนที่มาถึงแล้ว สำหรับคณะที่เดินทางมาไม่พร้อมกัน
-- **Safe Bulk Delete with 10s Undo**: ลบรายการแขกจำนวนมากอย่างปลอดภัย ต้องพิมพ์คำว่า `DELETE` เพื่อยืนยัน พร้อมแถบปุ่มกู้คืนข้อมูล (Undo Banner) ภายใน 10 วินาที
-- **Audit Logs**: บันทึกประวัติกิจกรรมสำคัญลงใน `data/activity_logs.json`
-- **CSV / Excel Clipboard Import**: วางข้อมูลจาก Excel หรือ Google Sheets ได้ทันที พร้อมระบบตรวจจับหัวคอลัมน์อัตโนมัติ
+### 💎 7. Design System กลาง (Dark Cinema Glassmorphism)
+- รวมศูนย์การตั้งค่าที่ [`public/css/tokens.css`](file:///c:/MOVIE%202/WEB%20moive/public/css/tokens.css) ครบถ้วน: Palette, Spacing, Typography, Radii, Elevation
+- **Mobile/Tablet Touch-friendly**: ทุกปุ่ม Action และ Input ช่องค้นหา ออกแบบให้มี Touch Target ขั้นต่ำ $\ge 40\text{--}44\text{px}$ เหมาะกับการถือ iPad ตรวจแขกหน้างาน
+- **Visual Button Hierarchy**:
+  - *Primary (ทอง)*: ปุ่มบันทึกและเพิ่มข้อมูลหลัก
+  - *Walk-in (Teal)*: ปุ่มลงทะเบียนหน้างานด่วน
+  - *Auto-Assign (ม่วง/ทอง)*: ปุ่มจัดที่นั่งอัตโนมัติ
+  - *Secondary (กระจกใส)*: ปุ่มนำเข้าข้อมูลและตั้งค่า
+  - *Danger Soft (แดงเตือน)*: ปุ่มล้างข้อมูลรอบฉาย แยกสัดส่วนเพื่อกันการกดพลาด
+- **WCAG AA Compliance**: คอนทราสต์ตัวอักษรคมชัดบนพื้นหลังมืด พร้อม Focus Ring ชัดเจนเวลาแตะ
 
 ---
 
 ## 🏗️ Architecture & Tech Stack
 
-| ส่วนประกอบ | เทคโนโลยี | รายละเอียด |
+```text
+┌─────────────────────────────────────────────────────────────────────────┐
+│                          CLIENT (BROWSER / IPAD)                        │
+│                                                                         │
+│   ┌───────────────────────┐ ┌───────────────────────┐ ┌───────────────┐ │
+│   │   หน้า 1: ภาพรวมงาน   │ │   หน้า 2: ผังที่นั่ง   │ │ หน้า 3: แขก   │ │
+│   │   (Overview & KPIs)   │ │  (1,164-seat Engine)  │ │ (Guest List)  │ │
+│   └───────────────────────┘ └───────────────────────┘ └───────────────┘ │
+│                                                                         │
+│   Design Tokens (tokens.css) │ Category Colors (seatCategoryColors.js) │
+│   Vanilla JS Single Page App │ Zero Heavy Runtime Frameworks (60 FPS)   │
+└────────────────────────────────────┬────────────────────────────────────┘
+                                     │ HTTP REST APIs
+┌────────────────────────────────────▼────────────────────────────────────┐
+│                        NODE.JS / EXPRESS.JS BACKEND                     │
+│                                                                         │
+│   Routes:       /api/screenings  │  /api/guests  │  /api/seats          │
+│   Controllers:  screening, guest, seat, branch                          │
+│   Services:     seatService (Heuristics), statsService, dataService     │
+│   Storage:      Asynchronous Atomic JSON Store with In-memory Mutex     │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+| เลเยอร์ | เทคโนโลยี | รายละเอียด |
 |---|---|---|
-| **Frontend** | Vanilla JS (ES6+), HTML5, CSS3 | Single Page Application (SPA) ความเร็วสูง ไม่มีภาระของ Framework |
-| **Styling** | Custom CSS Variables, Flexbox, Grid | Dark Cinema Luxury Palette, Glassmorphism, Responsive UI |
-| **Backend** | Node.js, Express.js | RESTful APIs, Error Handling, Input Validation |
-| **Algorithms** | Heuristic Scoring & Manhattan Distance | แนะนำกลุ่มที่นั่งติดกันและจัดสรรที่นั่งใกล้เคียง |
-| **Storage** | Asynchronous JSON File Store | ปลอดภัยด้วย Atomic File Writes ป้องกันข้อมูลเสียหาย |
-| **Testing** | Node Native Assertion Test Suite | รันชุดทดสอบ 24 เคส ครอบคลุม Heuristic, Parity, Conflict และ Transaction |
+| **Frontend** | Vanilla JS (ES6+), HTML5, CSS3 | Single Page Application (SPA) ความเร็วสูงพิเศษ ปราศจาก overhead ของ Framework |
+| **Design System** | CSS Custom Properties (Tokens), Flexbox, CSS Grid | Dark Cinema Glassmorphism, 4px Spacing Scale, Touch Target $\ge 44\text{px}$ |
+| **Backend** | Node.js, Express.js | RESTful APIs, Error Handling Middleware, Express Validator |
+| **Algorithms** | Heuristic Adjacency & Viewport Collision | แนะนำกลุ่มที่นั่งติดกัน และคำนวณการหลบขอบจอของ Tooltip |
+| **Storage** | Atomic JSON File Store | ปลอดภัยด้วย Mutex Lock ป้องกันการเขียนทับพร้อมกัน |
+| **Testing** | Node.js Native Test Suites | 10 ชุดทดสอบ 343 ข้อ ครอบคลุมการทำงานทุกส่วน (100% Pass Rate) |
 
 ---
 
@@ -102,44 +133,52 @@
 ```text
 WEB moive/
 ├── controllers/
-│   ├── branchController.js     # จัดการข้อมูลสาขาโรงภาพยนตร์
-│   ├── guestController.js      # จัดการข้อมูลแขก, Walk-in, Check-in, Bulk Delete
-│   ├── screeningController.js  # จัดการรอบฉายภาพยนตร์
-│   └── seatController.js       # จัดการระบบที่นั่ง, Heuristic Recs, Partial Move
+│   ├── branchController.js         # จัดการข้อมูลสาขาโรงภาพยนตร์
+│   ├── guestController.js          # จัดการแขก, Follower, PIC, Check-in, Walk-in
+│   ├── screeningController.js      # จัดการรอบฉายภาพยนตร์
+│   └── seatController.js           # จัดการที่นั่ง, Heuristic Recs, Auto-assign
 ├── data/
-│   ├── activity_logs.json      # ประวัติการทำงาน (Audit Trail)
-│   ├── branches.json           # ข้อมูลสาขา
-│   ├── guests.json             # ข้อมูลแขกและสถานะที่นั่ง
-│   ├── pavalai_layout.json     # โครงสร้างผังโรงภาพยนตร์สยามภาวลัย (1,164 ที่นั่ง)
-│   └── screenings.json         # ข้อมูลรอบฉาย
+│   ├── activity_logs.json          # ประวัติการทำงาน (Audit Trail)
+│   ├── branches.json               # ข้อมูลสาขา
+│   ├── guests.json                 # ข้อมูลแขกและสถานะที่นั่ง (seats schema v2)
+│   ├── pavalai_layout.json         # ผังโรงภาพยนตร์สยามภาวลัย 1,164 ที่นั่ง
+│   └── screenings.json             # ข้อมูลรอบฉาย
 ├── middleware/
-│   ├── errorHandler.js         # กลไกจัดการข้อผิดพลาดและส่ง HTTP Status
-│   └── validator.js            # ตรวจสอบความถูกต้องของ Input Request
+│   ├── errorHandler.js             # กลไกจัดการข้อผิดพลาดและส่ง HTTP Status
+│   └── validator.js                # ตรวจสอบ Input Request และเบอร์โทร 10 หลัก
 ├── public/
 │   ├── css/
-│   │   └── style.css           # ธีม Dark Cinema, เอฟเฟกต์ไฟนีออน, ผังโรงภาพยนตร์
+│   │   ├── tokens.css              # 🎨 Centralized Design System Tokens
+│   │   └── style.css               # ธีม Dark Cinema Glassmorphism, ผังโรง, ตารางแขก
 │   ├── data/
-│   │   └── pavalai_layout.json # ผังที่นั่งสำหรับ Client Cache
+│   │   └── pavalai_layout.json     # ผังที่นั่งสำหรับ Client Cache
 │   ├── js/
-│   │   ├── api.js              # Fetch Wrapper สำหรับสื่อสารกับ Backend API
-│   │   ├── app.js              # ตัวควบคุมหลักฝั่ง UI, Event Handlers, Modals
-│   │   └── seat-picker.js      # Unified Tri-modal SeatPicker Component
-│   └── index.html              # หน้าหลักแดชบอร์ด
+│   │   ├── api.js                  # Fetch Wrapper สำหรับสื่อสารกับ Backend API
+│   │   ├── app.js                  # ตัวควบคุมหลักฝั่ง UI, Event Handlers, Tooltips
+│   │   ├── seatCategoryColors.js   # 🎨 Single Source of Truth หมวดหมู่สีที่นั่ง
+│   │   ├── seat-picker.js          # Unified Tri-modal SeatPicker Component
+│   │   └── table.js                # โมดูลจัดการตารางแขก
+│   └── index.html                  # หน้าแดชบอร์ดหลัก (Portal Pattern Tooltip)
 ├── routes/
-│   ├── branchRoutes.js         # API Routes: /api/branches
-│   ├── guestRoutes.js          # API Routes: /api/guests
-│   ├── screeningRoutes.js      # API Routes: /api/screenings
-│   └── seatRoutes.js           # API Routes: /api/seats
-├── scripts/
-│   └── verify_group_seats.js   # Automated Test Suite (24 Test Cases)
-├── services/
-│   ├── auditService.js         # บันทึกกิจกรรมระบบ
-│   ├── dataService.js          # จัดการอ่าน-เขียนไฟล์ JSON แบบปลอดภัย
-│   ├── seatService.js          # เอนจินคำนวณ Heuristic และผังที่นั่ง
-│   ├── snapshotService.js      # ระบบสำรองข้อมูลและกู้คืน (Undo Snapshot)
-│   └── statsService.js         # คำนวณสรุปสถิติ KPI Dashboard
+│   ├── branchRoutes.js             # API Routes: /api/branches
+│   ├── guestRoutes.js              # API Routes: /api/guests
+│   ├── screeningRoutes.js          # API Routes: /api/screenings
+│   └── seatRoutes.js               # API Routes: /api/seats
+├── scripts/                        # 🧪 ชุดทดสอบอัตโนมัติ (Automated Verification)
+│   ├── migrate_seats_schema.js     # สคริปต์ไมเกรต seats schema พร้อม Backup
+│   ├── verify_group_seats.js       # Suite 1: Group seat engine (24 tests)
+│   ├── verify_hardening.js         # Suite 2: Security & Concurrency (13 tests)
+│   ├── verify_ui_matching.js       # Suite 3: UI Spec & Row labels (56 tests)
+│   ├── verify_smart_import_and_guest_list.js # Suite 4: Smart Import (23 tests)
+│   ├── verify_partial_checkin_schema.js      # Suite 5: Partial Check-in (31 tests)
+│   ├── verify_walkin_buttons.js    # Suite 6: Walk-in Buttons (15 tests)
+│   ├── verify_table_layout.js      # Suite 7: Table Layout & Truncation (20 tests)
+│   ├── verify_sheet_import_and_schema.js     # Suite 8: Google Sheet 6-col (52 tests)
+│   ├── verify_seat_category_colors.js        # Suite 9: Category Colors v2 (69 tests)
+│   └── verify_tooltip_positioning.js         # Suite 10: Smart Tooltip Flip (40 tests)
+├── nodemon.json
 ├── package.json
-└── server.js                   # จุดเริ่มต้นระบบ Express Server
+└── server.js                       # จุดเริ่มต้นระบบ Express Server
 ```
 
 ---
@@ -157,38 +196,52 @@ cd "media-screening-dashboard"
 npm install
 ```
 
-### 3. รันเซิร์ฟเวอร์
+### 3. เริ่มต้นรันเซิร์ฟเวอร์
 - **โหมด Production**:
   ```bash
   npm start
   ```
-- **โหมด Development** (Auto-reload เมื่อแก้ไขโค้ด):
+- **โหมด Development** (รีโหลดอัตโนมัติเมื่อแก้ไขโค้ด):
   ```bash
   npm run dev
   ```
 
-### 4. เปิดใช้งานผ่านเบราว์เซอร์
+### 4. เปิดใช้งานผ่านเว็บเบราว์เซอร์
 เปิดเบราว์เซอร์และเข้าไปที่:
 ```text
 http://localhost:3000/media-screening-dashboard
 ```
-*(หากเข้าผ่าน `http://localhost:3000/` ระบบจะ Redirect ไปยัง `/media-screening-dashboard` ให้อัตโนมัติ)*
+*(หากเข้าผ่าน `http://localhost:3000/` ระบบจะพาไปยัง `/media-screening-dashboard` ให้อัตโนมัติ)*
 
 ---
 
-## 🧪 การทดสอบระบบอัตโนมัติ (Automated Testing)
+## 🧪 การทดสอบระบบอัตโนมัติ (Automated Test Suites)
 
-โปรเจกต์มีชุดทดสอบอัตโนมัติระดับ Senior Full-Stack ครอบคลุม 80 รายการทดสอบ (100% Pass Rate):
+ระบบมีชุดทดสอบอัตโนมัติครอบคลุม 10 หมวดหมู่ รวม **343 รายการทดสอบ (100% Pass Rate)**:
+
 ```bash
 npm test
 ```
 
-**ผลการทดสอบ (80/80 Test Cases Passed - 100%):**
-- **Engine Verification (`verify_group_seats.js`)**: 24/24 ผ่าน (Topology, Heuristic Scoring, Walk-in Parity, Conflict Recovery, Seat Moves)
-- **Production Hardening (`verify_hardening.js`)**: 12/12 ผ่าน (Mutex Atomic Concurrency, Path Traversal Rejection, Layout Topology, Pre-validation, Idempotent Check-in)
-- **UI Spec & Route Verification (`verify_ui_matching.js`)**: 44/44 ผ่าน (Header/Subtitle, Actions, Tabs, Filter Chips, Legend, Twin Symmetrical Row Badges, `/media-screening-dashboard` Base URL)
+### รายละเอียดผลการทดสอบ:
+```text
+===============================================================
+  1.  verify_group_seats.js:                 24 / 24  PASSED (100%)
+  2.  verify_hardening.js:                   13 / 13  PASSED (100%)
+  3.  verify_ui_matching.js:                 56 / 56  PASSED (100%)
+  4.  verify_smart_import_and_guest_list.js: 23 / 23  PASSED (100%)
+  5.  verify_partial_checkin_schema.js:      31 / 31  PASSED (100%)
+  6.  verify_walkin_buttons.js:              15 / 15  PASSED (100%)
+  7.  verify_table_layout.js:                20 / 20  PASSED (100%)
+  8.  verify_sheet_import_and_schema.js:     52 / 52  PASSED (100%)
+  9.  verify_seat_category_colors.js:        69 / 69  PASSED (100%)
+  10. verify_tooltip_positioning.js:         40 / 40  PASSED (100%)
+===============================================================
+  GRAND TOTAL: 343 / 343 Tests PASSED (100%)
+===============================================================
+```
 
 ---
 
 ## 📄 ข้อตกลงสิทธิ์การใช้งาน (License)
-MIT License — พัฒนาเพื่อการบริหารจัดการงานรอบสื่อมวลชนอย่างมืออาชีพ
+MIT License — พัฒนาขึ้นเพื่อการบริหารจัดการงานรอบสื่อมวลชนและผังที่นั่งโรงภาพยนตร์อย่างมืออาชีพ

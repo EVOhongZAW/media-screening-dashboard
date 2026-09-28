@@ -1,5 +1,1875 @@
 [
   {
+    "id": "log-62cb5359",
+    "timestamp": "2026-09-28T03:47:53.525Z",
+    "action": "GUEST_DELETE",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-f74b8cf5",
+    "guestName": "คุณเอ็ม ผู้รับบัตร",
+    "details": {
+      "organization": "โกดังหนัง",
+      "seat": "X25, X26"
+    }
+  },
+  {
+    "id": "log-0ea2e1bf",
+    "timestamp": "2026-09-28T03:47:52.941Z",
+    "action": "IMPORT_BATCH",
+    "screeningId": "scr-84ce44cf",
+    "guestId": null,
+    "guestName": null,
+    "details": {
+      "count": 1,
+      "replaceExisting": false
+    }
+  },
+  {
+    "id": "log-c72a8949",
+    "timestamp": "2026-09-28T03:47:52.410Z",
+    "action": "GUEST_DELETE",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-1fc8c31d",
+    "guestName": "คุณวอล์คอิน อินฟลู",
+    "details": {
+      "organization": "TikTop Creator",
+      "seat": null
+    }
+  },
+  {
+    "id": "log-47e57a95",
+    "timestamp": "2026-09-28T03:47:51.807Z",
+    "action": "GUEST_DELETE",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-63aa375b",
+    "guestName": "แขกทั่วไป ไม่ระบุฟอล",
+    "details": {
+      "organization": "ทั่วไป",
+      "seat": null
+    }
+  },
+  {
+    "id": "log-189cc49b",
+    "timestamp": "2026-09-28T03:47:51.237Z",
+    "action": "GUEST_DELETE",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-a43648f4",
+    "guestName": "ทดสอบ ผู้รับบัตร",
+    "details": {
+      "organization": "เพจดูหนังสุดปัง",
+      "seat": null
+    }
+  },
+  {
+    "id": "log-32ad508f",
+    "timestamp": "2026-09-28T03:47:50.655Z",
+    "action": "WALK_IN_CREATE",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-1fc8c31d",
+    "guestName": "คุณวอล์คอิน อินฟลู",
+    "details": {
+      "seats": [],
+      "participant": 1,
+      "attended": false
+    }
+  },
+  {
+    "id": "log-89d74964",
+    "timestamp": "2026-09-28T03:47:50.102Z",
+    "action": "GUEST_CREATE",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-63aa375b",
+    "guestName": "แขกทั่วไป ไม่ระบุฟอล",
+    "details": {
+      "organization": "ทั่วไป",
+      "seat": null,
+      "seats": []
+    }
+  },
+  {
+    "id": "log-65228efe",
+    "timestamp": "2026-09-28T03:47:49.544Z",
+    "action": "GUEST_UPDATE",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-a43648f4",
+    "guestName": "ทดสอบ ผู้รับบัตร",
+    "details": {
+      "follower": 46000,
+      "pic": "มิว สื่อสารองค์กร"
+    }
+  },
+  {
+    "id": "log-aae2f3ed",
+    "timestamp": "2026-09-28T03:47:49.113Z",
+    "action": "GUEST_CREATE",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-a43648f4",
+    "guestName": "ทดสอบ ผู้รับบัตร",
+    "details": {
+      "organization": "เพจดูหนังสุดปัง",
+      "seat": null,
+      "seats": []
+    }
+  },
+  {
+    "id": "log-a3386705",
+    "timestamp": "2026-09-28T03:47:48.391Z",
+    "action": "GUEST_DELETE",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-755aa4cc",
+    "guestName": "Test No Phone",
+    "details": {
+      "organization": "Test",
+      "seat": null
+    }
+  },
+  {
+    "id": "log-2ab76925",
+    "timestamp": "2026-09-28T03:47:47.984Z",
+    "action": "GUEST_CREATE",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-755aa4cc",
+    "guestName": "Test No Phone",
+    "details": {
+      "organization": "Test",
+      "seat": null,
+      "seats": []
+    }
+  },
+  {
+    "id": "log-7b479023",
+    "timestamp": "2026-09-28T03:47:47.437Z",
+    "action": "GUEST_DELETE",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-2b76cf28",
+    "guestName": "Test Phone 10 Digits",
+    "details": {
+      "organization": "Test",
+      "seat": null
+    }
+  },
+  {
+    "id": "log-3d2c750d",
+    "timestamp": "2026-09-28T03:47:46.908Z",
+    "action": "GUEST_CREATE",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-2b76cf28",
+    "guestName": "Test Phone 10 Digits",
+    "details": {
+      "organization": "Test",
+      "seat": null,
+      "seats": []
+    }
+  },
+  {
+    "id": "log-5ee55b9b",
+    "timestamp": "2026-09-28T03:47:46.393Z",
+    "action": "CHECK_OUT",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-4d7e42eb",
+    "guestName": "คุณเอ็ม",
+    "details": {
+      "attended": false,
+      "attendedCount": 0,
+      "checkInStatus": "not-checked",
+      "quota": 2
+    }
+  },
+  {
+    "id": "log-0c76724e",
+    "timestamp": "2026-09-28T03:47:45.882Z",
+    "action": "CHECK_IN",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-4d7e42eb",
+    "guestName": "คุณเอ็ม",
+    "details": {
+      "attended": true,
+      "attendedCount": 2,
+      "checkInStatus": "complete",
+      "quota": 2
+    }
+  },
+  {
+    "id": "log-8d4f87e1",
+    "timestamp": "2026-09-28T03:47:45.505Z",
+    "action": "CHECK_IN",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-4d7e42eb",
+    "guestName": "คุณเอ็ม",
+    "details": {
+      "attended": false,
+      "attendedCount": 1,
+      "checkInStatus": "partial",
+      "quota": 2
+    }
+  },
+  {
+    "id": "log-1d513399",
+    "timestamp": "2026-09-28T03:47:45.095Z",
+    "action": "SEAT_CHECK_OUT",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-4d7e42eb",
+    "guestName": "คุณเอ็ม",
+    "details": {
+      "seat": "I16",
+      "checkedIn": false,
+      "checkInStatus": "not-checked"
+    }
+  },
+  {
+    "id": "log-42810a28",
+    "timestamp": "2026-09-28T03:47:44.498Z",
+    "action": "SEAT_CHECK_IN",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-4d7e42eb",
+    "guestName": "คุณเอ็ม",
+    "details": {
+      "seat": "I16",
+      "checkedIn": true,
+      "checkInStatus": "partial"
+    }
+  },
+  {
+    "id": "log-06ddb367",
+    "timestamp": "2026-09-28T03:47:43.875Z",
+    "action": "SEAT_CHECK_OUT",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-4d7e42eb",
+    "guestName": "คุณเอ็ม",
+    "details": {
+      "seat": "I16",
+      "checkedIn": false,
+      "checkInStatus": "not-checked"
+    }
+  },
+  {
+    "id": "log-e3f4c2be",
+    "timestamp": "2026-09-28T03:47:42.707Z",
+    "action": "GUEST_DELETE",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-cddabb5e",
+    "guestName": "Idempotency Test Guest",
+    "details": {
+      "organization": "Testing Corp",
+      "seat": "X30"
+    }
+  },
+  {
+    "id": "log-dd730506",
+    "timestamp": "2026-09-28T03:47:42.153Z",
+    "action": "CHECK_IN",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-cddabb5e",
+    "guestName": "Idempotency Test Guest",
+    "details": {
+      "attended": true,
+      "attendedCount": 1,
+      "checkInStatus": "complete",
+      "quota": 1
+    }
+  },
+  {
+    "id": "log-38c69b34",
+    "timestamp": "2026-09-28T03:47:41.521Z",
+    "action": "CHECK_IN",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-cddabb5e",
+    "guestName": "Idempotency Test Guest",
+    "details": {
+      "attended": true,
+      "attendedCount": 1,
+      "checkInStatus": "complete",
+      "quota": 1
+    }
+  },
+  {
+    "id": "log-24e5133d",
+    "timestamp": "2026-09-28T03:47:40.982Z",
+    "action": "GUEST_CREATE",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-cddabb5e",
+    "guestName": "Idempotency Test Guest",
+    "details": {
+      "organization": "Testing Corp",
+      "seat": "X30",
+      "seats": [
+        {
+          "code": "X30",
+          "checkedIn": false
+        }
+      ]
+    }
+  },
+  {
+    "id": "log-1ccf7b99",
+    "timestamp": "2026-09-28T03:47:39.972Z",
+    "action": "IMPORT_BATCH",
+    "screeningId": "scr-9b3834ae",
+    "guestId": null,
+    "guestName": null,
+    "details": {
+      "count": 817,
+      "replaceExisting": true
+    }
+  },
+  {
+    "id": "log-72139c28",
+    "timestamp": "2026-09-28T03:47:38.269Z",
+    "action": "GUEST_DELETE",
+    "screeningId": "scr-01",
+    "guestId": "gst-9c395cb0",
+    "guestName": "ทีมข่าวบันเทิง Workpoint (4 ท่าน)",
+    "details": {
+      "organization": "Workpoint News",
+      "seat": "X11, X12, X13, X14"
+    }
+  },
+  {
+    "id": "log-63515b27",
+    "timestamp": "2026-09-28T03:47:37.671Z",
+    "action": "SEAT_MOVE",
+    "screeningId": "scr-01",
+    "guestId": "gst-9c395cb0",
+    "guestName": "ทีมข่าวบันเทิง Workpoint (4 ท่าน)",
+    "details": {
+      "moves": [
+        {
+          "from": "X1",
+          "to": "X11"
+        },
+        {
+          "from": "X2",
+          "to": "X12"
+        },
+        {
+          "from": "X3",
+          "to": "X13"
+        },
+        {
+          "from": "X5",
+          "to": "X14"
+        }
+      ],
+      "allSeats": "X11, X12, X13, X14"
+    }
+  },
+  {
+    "id": "log-303cf7a5",
+    "timestamp": "2026-09-28T03:47:37.172Z",
+    "action": "SEAT_MOVE",
+    "screeningId": "scr-01",
+    "guestId": "gst-9c395cb0",
+    "guestName": "ทีมข่าวบันเทิง Workpoint (4 ท่าน)",
+    "details": {
+      "moves": [
+        {
+          "from": "X4",
+          "to": "X5"
+        }
+      ],
+      "allSeats": "X1, X2, X3, X5"
+    }
+  },
+  {
+    "id": "log-ed688c0a",
+    "timestamp": "2026-09-28T03:47:36.554Z",
+    "action": "WALK_IN_CREATE",
+    "screeningId": "scr-01",
+    "guestId": "gst-9c395cb0",
+    "guestName": "ทีมข่าวบันเทิง Workpoint (4 ท่าน)",
+    "details": {
+      "seats": [
+        "X1",
+        "X2",
+        "X3",
+        "X4"
+      ],
+      "participant": 4,
+      "attended": true
+    }
+  },
+  {
+    "id": "log-70a8a763",
+    "timestamp": "2026-09-28T03:37:31.977Z",
+    "action": "GUEST_DELETE",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-020b6d61",
+    "guestName": "คุณเอ็ม ผู้รับบัตร",
+    "details": {
+      "organization": "โกดังหนัง",
+      "seat": "X25, X26"
+    }
+  },
+  {
+    "id": "log-644aff98",
+    "timestamp": "2026-09-28T03:37:31.277Z",
+    "action": "IMPORT_BATCH",
+    "screeningId": "scr-84ce44cf",
+    "guestId": null,
+    "guestName": null,
+    "details": {
+      "count": 1,
+      "replaceExisting": false
+    }
+  },
+  {
+    "id": "log-4a1ce712",
+    "timestamp": "2026-09-28T03:37:30.554Z",
+    "action": "GUEST_DELETE",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-514ce39e",
+    "guestName": "คุณวอล์คอิน อินฟลู",
+    "details": {
+      "organization": "TikTop Creator",
+      "seat": null
+    }
+  },
+  {
+    "id": "log-d8ce61c3",
+    "timestamp": "2026-09-28T03:37:29.982Z",
+    "action": "GUEST_DELETE",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-faad3a28",
+    "guestName": "แขกทั่วไป ไม่ระบุฟอล",
+    "details": {
+      "organization": "ทั่วไป",
+      "seat": null
+    }
+  },
+  {
+    "id": "log-32b440df",
+    "timestamp": "2026-09-28T03:37:29.314Z",
+    "action": "GUEST_DELETE",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-5fa7b4cf",
+    "guestName": "ทดสอบ ผู้รับบัตร",
+    "details": {
+      "organization": "เพจดูหนังสุดปัง",
+      "seat": null
+    }
+  },
+  {
+    "id": "log-972dc389",
+    "timestamp": "2026-09-28T03:37:28.578Z",
+    "action": "WALK_IN_CREATE",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-514ce39e",
+    "guestName": "คุณวอล์คอิน อินฟลู",
+    "details": {
+      "seats": [],
+      "participant": 1,
+      "attended": false
+    }
+  },
+  {
+    "id": "log-b80abc56",
+    "timestamp": "2026-09-28T03:37:27.959Z",
+    "action": "GUEST_CREATE",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-faad3a28",
+    "guestName": "แขกทั่วไป ไม่ระบุฟอล",
+    "details": {
+      "organization": "ทั่วไป",
+      "seat": null,
+      "seats": []
+    }
+  },
+  {
+    "id": "log-fb41d9cb",
+    "timestamp": "2026-09-28T03:37:27.282Z",
+    "action": "GUEST_UPDATE",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-5fa7b4cf",
+    "guestName": "ทดสอบ ผู้รับบัตร",
+    "details": {
+      "follower": 46000,
+      "pic": "มิว สื่อสารองค์กร"
+    }
+  },
+  {
+    "id": "log-8f972b5a",
+    "timestamp": "2026-09-28T03:37:26.735Z",
+    "action": "GUEST_CREATE",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-5fa7b4cf",
+    "guestName": "ทดสอบ ผู้รับบัตร",
+    "details": {
+      "organization": "เพจดูหนังสุดปัง",
+      "seat": null,
+      "seats": []
+    }
+  },
+  {
+    "id": "log-83317f1b",
+    "timestamp": "2026-09-28T03:37:25.590Z",
+    "action": "GUEST_DELETE",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-ffba00a1",
+    "guestName": "Test No Phone",
+    "details": {
+      "organization": "Test",
+      "seat": null
+    }
+  },
+  {
+    "id": "log-043e9ebd",
+    "timestamp": "2026-09-28T03:37:24.904Z",
+    "action": "GUEST_CREATE",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-ffba00a1",
+    "guestName": "Test No Phone",
+    "details": {
+      "organization": "Test",
+      "seat": null,
+      "seats": []
+    }
+  },
+  {
+    "id": "log-66bd6117",
+    "timestamp": "2026-09-28T03:37:24.183Z",
+    "action": "GUEST_DELETE",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-2f9b6fec",
+    "guestName": "Test Phone 10 Digits",
+    "details": {
+      "organization": "Test",
+      "seat": null
+    }
+  },
+  {
+    "id": "log-6cbbf7f3",
+    "timestamp": "2026-09-28T03:37:23.513Z",
+    "action": "GUEST_CREATE",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-2f9b6fec",
+    "guestName": "Test Phone 10 Digits",
+    "details": {
+      "organization": "Test",
+      "seat": null,
+      "seats": []
+    }
+  },
+  {
+    "id": "log-2bf8438c",
+    "timestamp": "2026-09-28T03:37:22.799Z",
+    "action": "CHECK_OUT",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-4d7e42eb",
+    "guestName": "คุณเอ็ม",
+    "details": {
+      "attended": false,
+      "attendedCount": 0,
+      "checkInStatus": "not-checked",
+      "quota": 2
+    }
+  },
+  {
+    "id": "log-26d53b97",
+    "timestamp": "2026-09-28T03:37:22.104Z",
+    "action": "CHECK_IN",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-4d7e42eb",
+    "guestName": "คุณเอ็ม",
+    "details": {
+      "attended": true,
+      "attendedCount": 2,
+      "checkInStatus": "complete",
+      "quota": 2
+    }
+  },
+  {
+    "id": "log-55c6ca37",
+    "timestamp": "2026-09-28T03:37:21.455Z",
+    "action": "CHECK_IN",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-4d7e42eb",
+    "guestName": "คุณเอ็ม",
+    "details": {
+      "attended": false,
+      "attendedCount": 1,
+      "checkInStatus": "partial",
+      "quota": 2
+    }
+  },
+  {
+    "id": "log-482ab3e6",
+    "timestamp": "2026-09-28T03:37:20.871Z",
+    "action": "SEAT_CHECK_OUT",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-4d7e42eb",
+    "guestName": "คุณเอ็ม",
+    "details": {
+      "seat": "I16",
+      "checkedIn": false,
+      "checkInStatus": "not-checked"
+    }
+  },
+  {
+    "id": "log-0b7ca27a",
+    "timestamp": "2026-09-28T03:37:20.248Z",
+    "action": "SEAT_CHECK_IN",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-4d7e42eb",
+    "guestName": "คุณเอ็ม",
+    "details": {
+      "seat": "I16",
+      "checkedIn": true,
+      "checkInStatus": "partial"
+    }
+  },
+  {
+    "id": "log-0948a71c",
+    "timestamp": "2026-09-28T03:37:19.605Z",
+    "action": "SEAT_CHECK_OUT",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-4d7e42eb",
+    "guestName": "คุณเอ็ม",
+    "details": {
+      "seat": "I16",
+      "checkedIn": false,
+      "checkInStatus": "not-checked"
+    }
+  },
+  {
+    "id": "log-c0b0607e",
+    "timestamp": "2026-09-28T03:37:18.242Z",
+    "action": "GUEST_DELETE",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-0b1e5c30",
+    "guestName": "Idempotency Test Guest",
+    "details": {
+      "organization": "Testing Corp",
+      "seat": "X30"
+    }
+  },
+  {
+    "id": "log-572be457",
+    "timestamp": "2026-09-28T03:37:17.573Z",
+    "action": "CHECK_IN",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-0b1e5c30",
+    "guestName": "Idempotency Test Guest",
+    "details": {
+      "attended": true,
+      "attendedCount": 1,
+      "checkInStatus": "complete",
+      "quota": 1
+    }
+  },
+  {
+    "id": "log-f0a4914e",
+    "timestamp": "2026-09-28T03:37:16.922Z",
+    "action": "CHECK_IN",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-0b1e5c30",
+    "guestName": "Idempotency Test Guest",
+    "details": {
+      "attended": true,
+      "attendedCount": 1,
+      "checkInStatus": "complete",
+      "quota": 1
+    }
+  },
+  {
+    "id": "log-ba63131f",
+    "timestamp": "2026-09-28T03:37:16.202Z",
+    "action": "GUEST_CREATE",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-0b1e5c30",
+    "guestName": "Idempotency Test Guest",
+    "details": {
+      "organization": "Testing Corp",
+      "seat": "X30",
+      "seats": [
+        {
+          "code": "X30",
+          "checkedIn": false
+        }
+      ]
+    }
+  },
+  {
+    "id": "log-c9585554",
+    "timestamp": "2026-09-28T03:37:15.203Z",
+    "action": "IMPORT_BATCH",
+    "screeningId": "scr-4d86524f",
+    "guestId": null,
+    "guestName": null,
+    "details": {
+      "count": 817,
+      "replaceExisting": true
+    }
+  },
+  {
+    "id": "log-84bbc700",
+    "timestamp": "2026-09-28T03:37:13.404Z",
+    "action": "GUEST_DELETE",
+    "screeningId": "scr-01",
+    "guestId": "gst-3387706a",
+    "guestName": "ทีมข่าวบันเทิง Workpoint (4 ท่าน)",
+    "details": {
+      "organization": "Workpoint News",
+      "seat": "X11, X12, X13, X14"
+    }
+  },
+  {
+    "id": "log-a6d36eb9",
+    "timestamp": "2026-09-28T03:37:12.731Z",
+    "action": "SEAT_MOVE",
+    "screeningId": "scr-01",
+    "guestId": "gst-3387706a",
+    "guestName": "ทีมข่าวบันเทิง Workpoint (4 ท่าน)",
+    "details": {
+      "moves": [
+        {
+          "from": "X1",
+          "to": "X11"
+        },
+        {
+          "from": "X2",
+          "to": "X12"
+        },
+        {
+          "from": "X3",
+          "to": "X13"
+        },
+        {
+          "from": "X5",
+          "to": "X14"
+        }
+      ],
+      "allSeats": "X11, X12, X13, X14"
+    }
+  },
+  {
+    "id": "log-9c3826fb",
+    "timestamp": "2026-09-28T03:37:12.023Z",
+    "action": "SEAT_MOVE",
+    "screeningId": "scr-01",
+    "guestId": "gst-3387706a",
+    "guestName": "ทีมข่าวบันเทิง Workpoint (4 ท่าน)",
+    "details": {
+      "moves": [
+        {
+          "from": "X4",
+          "to": "X5"
+        }
+      ],
+      "allSeats": "X1, X2, X3, X5"
+    }
+  },
+  {
+    "id": "log-06648682",
+    "timestamp": "2026-09-28T03:37:11.329Z",
+    "action": "WALK_IN_CREATE",
+    "screeningId": "scr-01",
+    "guestId": "gst-3387706a",
+    "guestName": "ทีมข่าวบันเทิง Workpoint (4 ท่าน)",
+    "details": {
+      "seats": [
+        "X1",
+        "X2",
+        "X3",
+        "X4"
+      ],
+      "participant": 4,
+      "attended": true
+    }
+  },
+  {
+    "id": "log-ac0b08a4",
+    "timestamp": "2026-09-28T03:27:15.127Z",
+    "action": "GUEST_DELETE",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-83b02d51",
+    "guestName": "คุณเอ็ม ผู้รับบัตร",
+    "details": {
+      "organization": "โกดังหนัง",
+      "seat": "X25, X26"
+    }
+  },
+  {
+    "id": "log-5ace4a8f",
+    "timestamp": "2026-09-28T03:27:14.437Z",
+    "action": "IMPORT_BATCH",
+    "screeningId": "scr-84ce44cf",
+    "guestId": null,
+    "guestName": null,
+    "details": {
+      "count": 1,
+      "replaceExisting": false
+    }
+  },
+  {
+    "id": "log-86673a5a",
+    "timestamp": "2026-09-28T03:27:13.835Z",
+    "action": "GUEST_DELETE",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-aa387f0c",
+    "guestName": "คุณวอล์คอิน อินฟลู",
+    "details": {
+      "organization": "TikTop Creator",
+      "seat": null
+    }
+  },
+  {
+    "id": "log-8a33459f",
+    "timestamp": "2026-09-28T03:27:13.133Z",
+    "action": "GUEST_DELETE",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-553a4ca8",
+    "guestName": "แขกทั่วไป ไม่ระบุฟอล",
+    "details": {
+      "organization": "ทั่วไป",
+      "seat": null
+    }
+  },
+  {
+    "id": "log-3f39a794",
+    "timestamp": "2026-09-28T03:27:12.483Z",
+    "action": "GUEST_DELETE",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-d1118511",
+    "guestName": "ทดสอบ ผู้รับบัตร",
+    "details": {
+      "organization": "เพจดูหนังสุดปัง",
+      "seat": null
+    }
+  },
+  {
+    "id": "log-b9948cce",
+    "timestamp": "2026-09-28T03:27:11.818Z",
+    "action": "WALK_IN_CREATE",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-aa387f0c",
+    "guestName": "คุณวอล์คอิน อินฟลู",
+    "details": {
+      "seats": [],
+      "participant": 1,
+      "attended": false
+    }
+  },
+  {
+    "id": "log-35100a9c",
+    "timestamp": "2026-09-28T03:27:11.111Z",
+    "action": "GUEST_CREATE",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-553a4ca8",
+    "guestName": "แขกทั่วไป ไม่ระบุฟอล",
+    "details": {
+      "organization": "ทั่วไป",
+      "seat": null,
+      "seats": []
+    }
+  },
+  {
+    "id": "log-ddef1aeb",
+    "timestamp": "2026-09-28T03:27:10.464Z",
+    "action": "GUEST_UPDATE",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-d1118511",
+    "guestName": "ทดสอบ ผู้รับบัตร",
+    "details": {
+      "follower": 46000,
+      "pic": "มิว สื่อสารองค์กร"
+    }
+  },
+  {
+    "id": "log-77ba33d6",
+    "timestamp": "2026-09-28T03:27:09.788Z",
+    "action": "GUEST_CREATE",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-d1118511",
+    "guestName": "ทดสอบ ผู้รับบัตร",
+    "details": {
+      "organization": "เพจดูหนังสุดปัง",
+      "seat": null,
+      "seats": []
+    }
+  },
+  {
+    "id": "log-f22ad13c",
+    "timestamp": "2026-09-28T03:27:08.900Z",
+    "action": "GUEST_DELETE",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-a7e03c7b",
+    "guestName": "Test No Phone",
+    "details": {
+      "organization": "Test",
+      "seat": null
+    }
+  },
+  {
+    "id": "log-c8ea90a0",
+    "timestamp": "2026-09-28T03:27:08.482Z",
+    "action": "GUEST_CREATE",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-a7e03c7b",
+    "guestName": "Test No Phone",
+    "details": {
+      "organization": "Test",
+      "seat": null,
+      "seats": []
+    }
+  },
+  {
+    "id": "log-bd98f157",
+    "timestamp": "2026-09-28T03:27:08.041Z",
+    "action": "GUEST_DELETE",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-97c21ace",
+    "guestName": "Test Phone 10 Digits",
+    "details": {
+      "organization": "Test",
+      "seat": null
+    }
+  },
+  {
+    "id": "log-74b2cf88",
+    "timestamp": "2026-09-28T03:27:07.517Z",
+    "action": "GUEST_CREATE",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-97c21ace",
+    "guestName": "Test Phone 10 Digits",
+    "details": {
+      "organization": "Test",
+      "seat": null,
+      "seats": []
+    }
+  },
+  {
+    "id": "log-151580e2",
+    "timestamp": "2026-09-28T03:27:06.844Z",
+    "action": "CHECK_OUT",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-4d7e42eb",
+    "guestName": "คุณเอ็ม",
+    "details": {
+      "attended": false,
+      "attendedCount": 0,
+      "checkInStatus": "not-checked",
+      "quota": 2
+    }
+  },
+  {
+    "id": "log-094d70af",
+    "timestamp": "2026-09-28T03:27:06.155Z",
+    "action": "CHECK_IN",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-4d7e42eb",
+    "guestName": "คุณเอ็ม",
+    "details": {
+      "attended": true,
+      "attendedCount": 2,
+      "checkInStatus": "complete",
+      "quota": 2
+    }
+  },
+  {
+    "id": "log-a9c5e9e6",
+    "timestamp": "2026-09-28T03:27:05.494Z",
+    "action": "CHECK_IN",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-4d7e42eb",
+    "guestName": "คุณเอ็ม",
+    "details": {
+      "attended": false,
+      "attendedCount": 1,
+      "checkInStatus": "partial",
+      "quota": 2
+    }
+  },
+  {
+    "id": "log-42320cb0",
+    "timestamp": "2026-09-28T03:27:04.814Z",
+    "action": "SEAT_CHECK_OUT",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-4d7e42eb",
+    "guestName": "คุณเอ็ม",
+    "details": {
+      "seat": "I16",
+      "checkedIn": false,
+      "checkInStatus": "not-checked"
+    }
+  },
+  {
+    "id": "log-166221eb",
+    "timestamp": "2026-09-28T03:27:04.158Z",
+    "action": "SEAT_CHECK_IN",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-4d7e42eb",
+    "guestName": "คุณเอ็ม",
+    "details": {
+      "seat": "I16",
+      "checkedIn": true,
+      "checkInStatus": "partial"
+    }
+  },
+  {
+    "id": "log-b9bb37d4",
+    "timestamp": "2026-09-28T03:27:03.513Z",
+    "action": "SEAT_CHECK_OUT",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-4d7e42eb",
+    "guestName": "คุณเอ็ม",
+    "details": {
+      "seat": "I16",
+      "checkedIn": false,
+      "checkInStatus": "not-checked"
+    }
+  },
+  {
+    "id": "log-071f8e08",
+    "timestamp": "2026-09-28T03:27:02.286Z",
+    "action": "GUEST_DELETE",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-b7eca08d",
+    "guestName": "Idempotency Test Guest",
+    "details": {
+      "organization": "Testing Corp",
+      "seat": "X30"
+    }
+  },
+  {
+    "id": "log-3c13355a",
+    "timestamp": "2026-09-28T03:27:01.640Z",
+    "action": "CHECK_IN",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-b7eca08d",
+    "guestName": "Idempotency Test Guest",
+    "details": {
+      "attended": true,
+      "attendedCount": 1,
+      "checkInStatus": "complete",
+      "quota": 1
+    }
+  },
+  {
+    "id": "log-d6950b80",
+    "timestamp": "2026-09-28T03:27:00.930Z",
+    "action": "CHECK_IN",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-b7eca08d",
+    "guestName": "Idempotency Test Guest",
+    "details": {
+      "attended": true,
+      "attendedCount": 1,
+      "checkInStatus": "complete",
+      "quota": 1
+    }
+  },
+  {
+    "id": "log-8dece608",
+    "timestamp": "2026-09-28T03:27:00.293Z",
+    "action": "GUEST_CREATE",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-b7eca08d",
+    "guestName": "Idempotency Test Guest",
+    "details": {
+      "organization": "Testing Corp",
+      "seat": "X30",
+      "seats": [
+        {
+          "code": "X30",
+          "checkedIn": false
+        }
+      ]
+    }
+  },
+  {
+    "id": "log-4402a2f5",
+    "timestamp": "2026-09-28T03:26:59.202Z",
+    "action": "IMPORT_BATCH",
+    "screeningId": "scr-d05b1ec6",
+    "guestId": null,
+    "guestName": null,
+    "details": {
+      "count": 817,
+      "replaceExisting": true
+    }
+  },
+  {
+    "id": "log-888062a0",
+    "timestamp": "2026-09-28T03:26:57.411Z",
+    "action": "GUEST_DELETE",
+    "screeningId": "scr-01",
+    "guestId": "gst-0a7f5817",
+    "guestName": "ทีมข่าวบันเทิง Workpoint (4 ท่าน)",
+    "details": {
+      "organization": "Workpoint News",
+      "seat": "X11, X12, X13, X14"
+    }
+  },
+  {
+    "id": "log-5fc869a7",
+    "timestamp": "2026-09-28T03:26:56.705Z",
+    "action": "SEAT_MOVE",
+    "screeningId": "scr-01",
+    "guestId": "gst-0a7f5817",
+    "guestName": "ทีมข่าวบันเทิง Workpoint (4 ท่าน)",
+    "details": {
+      "moves": [
+        {
+          "from": "X1",
+          "to": "X11"
+        },
+        {
+          "from": "X2",
+          "to": "X12"
+        },
+        {
+          "from": "X3",
+          "to": "X13"
+        },
+        {
+          "from": "X5",
+          "to": "X14"
+        }
+      ],
+      "allSeats": "X11, X12, X13, X14"
+    }
+  },
+  {
+    "id": "log-69b11747",
+    "timestamp": "2026-09-28T03:26:55.921Z",
+    "action": "SEAT_MOVE",
+    "screeningId": "scr-01",
+    "guestId": "gst-0a7f5817",
+    "guestName": "ทีมข่าวบันเทิง Workpoint (4 ท่าน)",
+    "details": {
+      "moves": [
+        {
+          "from": "X4",
+          "to": "X5"
+        }
+      ],
+      "allSeats": "X1, X2, X3, X5"
+    }
+  },
+  {
+    "id": "log-973b406e",
+    "timestamp": "2026-09-28T03:26:55.238Z",
+    "action": "WALK_IN_CREATE",
+    "screeningId": "scr-01",
+    "guestId": "gst-0a7f5817",
+    "guestName": "ทีมข่าวบันเทิง Workpoint (4 ท่าน)",
+    "details": {
+      "seats": [
+        "X1",
+        "X2",
+        "X3",
+        "X4"
+      ],
+      "participant": 4,
+      "attended": true
+    }
+  },
+  {
+    "id": "log-a6a9d287",
+    "timestamp": "2026-09-28T03:24:42.615Z",
+    "action": "GUEST_DELETE",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-d287f825",
+    "guestName": "Test No Phone",
+    "details": {
+      "organization": "Test",
+      "seat": null
+    }
+  },
+  {
+    "id": "log-de4d8f02",
+    "timestamp": "2026-09-28T03:24:42.081Z",
+    "action": "GUEST_CREATE",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-d287f825",
+    "guestName": "Test No Phone",
+    "details": {
+      "organization": "Test",
+      "seat": null,
+      "seats": []
+    }
+  },
+  {
+    "id": "log-b0d758a4",
+    "timestamp": "2026-09-28T03:24:41.445Z",
+    "action": "GUEST_DELETE",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-8be4f703",
+    "guestName": "Test Phone 10 Digits",
+    "details": {
+      "organization": "Test",
+      "seat": null
+    }
+  },
+  {
+    "id": "log-edea26c1",
+    "timestamp": "2026-09-28T03:24:40.739Z",
+    "action": "GUEST_CREATE",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-8be4f703",
+    "guestName": "Test Phone 10 Digits",
+    "details": {
+      "organization": "Test",
+      "seat": null,
+      "seats": []
+    }
+  },
+  {
+    "id": "log-f75c4df1",
+    "timestamp": "2026-09-28T03:24:40.011Z",
+    "action": "CHECK_OUT",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-4d7e42eb",
+    "guestName": "คุณเอ็ม",
+    "details": {
+      "attended": false,
+      "attendedCount": 0,
+      "checkInStatus": "not-checked",
+      "quota": 2
+    }
+  },
+  {
+    "id": "log-f2815dd2",
+    "timestamp": "2026-09-28T03:24:39.390Z",
+    "action": "CHECK_IN",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-4d7e42eb",
+    "guestName": "คุณเอ็ม",
+    "details": {
+      "attended": true,
+      "attendedCount": 2,
+      "checkInStatus": "complete",
+      "quota": 2
+    }
+  },
+  {
+    "id": "log-c37bc443",
+    "timestamp": "2026-09-28T03:24:38.742Z",
+    "action": "CHECK_IN",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-4d7e42eb",
+    "guestName": "คุณเอ็ม",
+    "details": {
+      "attended": false,
+      "attendedCount": 1,
+      "checkInStatus": "partial",
+      "quota": 2
+    }
+  },
+  {
+    "id": "log-c9f6a872",
+    "timestamp": "2026-09-28T03:24:38.043Z",
+    "action": "SEAT_CHECK_OUT",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-4d7e42eb",
+    "guestName": "คุณเอ็ม",
+    "details": {
+      "seat": "I16",
+      "checkedIn": false,
+      "checkInStatus": "not-checked"
+    }
+  },
+  {
+    "id": "log-0f333253",
+    "timestamp": "2026-09-28T03:24:37.406Z",
+    "action": "SEAT_CHECK_IN",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-4d7e42eb",
+    "guestName": "คุณเอ็ม",
+    "details": {
+      "seat": "I16",
+      "checkedIn": true,
+      "checkInStatus": "partial"
+    }
+  },
+  {
+    "id": "log-b99378bb",
+    "timestamp": "2026-09-28T03:24:36.716Z",
+    "action": "SEAT_CHECK_OUT",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-4d7e42eb",
+    "guestName": "คุณเอ็ม",
+    "details": {
+      "seat": "I16",
+      "checkedIn": false,
+      "checkInStatus": "not-checked"
+    }
+  },
+  {
+    "id": "log-8da06418",
+    "timestamp": "2026-09-28T03:24:35.498Z",
+    "action": "GUEST_DELETE",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-b9def207",
+    "guestName": "Idempotency Test Guest",
+    "details": {
+      "organization": "Testing Corp",
+      "seat": "X30"
+    }
+  },
+  {
+    "id": "log-93d59e53",
+    "timestamp": "2026-09-28T03:24:34.916Z",
+    "action": "CHECK_IN",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-b9def207",
+    "guestName": "Idempotency Test Guest",
+    "details": {
+      "attended": true,
+      "attendedCount": 1,
+      "checkInStatus": "complete",
+      "quota": 1
+    }
+  },
+  {
+    "id": "log-b33e20d5",
+    "timestamp": "2026-09-28T03:24:34.334Z",
+    "action": "CHECK_IN",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-b9def207",
+    "guestName": "Idempotency Test Guest",
+    "details": {
+      "attended": true,
+      "attendedCount": 1,
+      "checkInStatus": "complete",
+      "quota": 1
+    }
+  },
+  {
+    "id": "log-5a86090d",
+    "timestamp": "2026-09-28T03:24:33.825Z",
+    "action": "GUEST_CREATE",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-b9def207",
+    "guestName": "Idempotency Test Guest",
+    "details": {
+      "organization": "Testing Corp",
+      "seat": "X30",
+      "seats": [
+        {
+          "code": "X30",
+          "checkedIn": false
+        }
+      ]
+    }
+  },
+  {
+    "id": "log-bf58bcff",
+    "timestamp": "2026-09-28T03:24:33.006Z",
+    "action": "IMPORT_BATCH",
+    "screeningId": "scr-b5d40a88",
+    "guestId": null,
+    "guestName": null,
+    "details": {
+      "count": 817,
+      "replaceExisting": true
+    }
+  },
+  {
+    "id": "log-cbd6fc23",
+    "timestamp": "2026-09-28T03:24:31.624Z",
+    "action": "GUEST_DELETE",
+    "screeningId": "scr-01",
+    "guestId": "gst-f3ff5b00",
+    "guestName": "ทีมข่าวบันเทิง Workpoint (4 ท่าน)",
+    "details": {
+      "organization": "Workpoint News",
+      "seat": "X11, X12, X13, X14"
+    }
+  },
+  {
+    "id": "log-ebe85e93",
+    "timestamp": "2026-09-28T03:24:31.098Z",
+    "action": "SEAT_MOVE",
+    "screeningId": "scr-01",
+    "guestId": "gst-f3ff5b00",
+    "guestName": "ทีมข่าวบันเทิง Workpoint (4 ท่าน)",
+    "details": {
+      "moves": [
+        {
+          "from": "X1",
+          "to": "X11"
+        },
+        {
+          "from": "X2",
+          "to": "X12"
+        },
+        {
+          "from": "X3",
+          "to": "X13"
+        },
+        {
+          "from": "X5",
+          "to": "X14"
+        }
+      ],
+      "allSeats": "X11, X12, X13, X14"
+    }
+  },
+  {
+    "id": "log-09c9be7b",
+    "timestamp": "2026-09-28T03:24:30.699Z",
+    "action": "SEAT_MOVE",
+    "screeningId": "scr-01",
+    "guestId": "gst-f3ff5b00",
+    "guestName": "ทีมข่าวบันเทิง Workpoint (4 ท่าน)",
+    "details": {
+      "moves": [
+        {
+          "from": "X4",
+          "to": "X5"
+        }
+      ],
+      "allSeats": "X1, X2, X3, X5"
+    }
+  },
+  {
+    "id": "log-e8c88f3a",
+    "timestamp": "2026-09-28T03:24:30.208Z",
+    "action": "WALK_IN_CREATE",
+    "screeningId": "scr-01",
+    "guestId": "gst-f3ff5b00",
+    "guestName": "ทีมข่าวบันเทิง Workpoint (4 ท่าน)",
+    "details": {
+      "seats": [
+        "X1",
+        "X2",
+        "X3",
+        "X4"
+      ],
+      "participant": 4,
+      "attended": true
+    }
+  },
+  {
+    "id": "log-f824457a",
+    "timestamp": "2026-09-28T03:17:54.557Z",
+    "action": "GUEST_DELETE",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-21509f32",
+    "guestName": "คุณเอ็ม ผู้รับบัตร",
+    "details": {
+      "organization": "โกดังหนัง",
+      "seat": "X25, X26"
+    }
+  },
+  {
+    "id": "log-a60f9d56",
+    "timestamp": "2026-09-28T03:17:53.939Z",
+    "action": "IMPORT_BATCH",
+    "screeningId": "scr-84ce44cf",
+    "guestId": null,
+    "guestName": null,
+    "details": {
+      "count": 1,
+      "replaceExisting": false
+    }
+  },
+  {
+    "id": "log-d7d8d7de",
+    "timestamp": "2026-09-28T03:17:53.414Z",
+    "action": "GUEST_DELETE",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-c53831a9",
+    "guestName": "คุณวอล์คอิน อินฟลู",
+    "details": {
+      "organization": "TikTop Creator",
+      "seat": null
+    }
+  },
+  {
+    "id": "log-d918e0e7",
+    "timestamp": "2026-09-28T03:17:52.851Z",
+    "action": "GUEST_DELETE",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-b01e7b1b",
+    "guestName": "แขกทั่วไป ไม่ระบุฟอล",
+    "details": {
+      "organization": "ทั่วไป",
+      "seat": null
+    }
+  },
+  {
+    "id": "log-9e06d7b8",
+    "timestamp": "2026-09-28T03:17:52.345Z",
+    "action": "GUEST_DELETE",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-1770e263",
+    "guestName": "ทดสอบ ผู้รับบัตร",
+    "details": {
+      "organization": "เพจดูหนังสุดปัง",
+      "seat": null
+    }
+  },
+  {
+    "id": "log-de5bc36c",
+    "timestamp": "2026-09-28T03:17:51.795Z",
+    "action": "WALK_IN_CREATE",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-c53831a9",
+    "guestName": "คุณวอล์คอิน อินฟลู",
+    "details": {
+      "seats": [],
+      "participant": 1,
+      "attended": false
+    }
+  },
+  {
+    "id": "log-654b961d",
+    "timestamp": "2026-09-28T03:17:51.325Z",
+    "action": "GUEST_CREATE",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-b01e7b1b",
+    "guestName": "แขกทั่วไป ไม่ระบุฟอล",
+    "details": {
+      "organization": "ทั่วไป",
+      "seat": null,
+      "seats": []
+    }
+  },
+  {
+    "id": "log-bcf6cbbd",
+    "timestamp": "2026-09-28T03:17:50.986Z",
+    "action": "GUEST_UPDATE",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-1770e263",
+    "guestName": "ทดสอบ ผู้รับบัตร",
+    "details": {
+      "follower": 46000,
+      "pic": "มิว สื่อสารองค์กร"
+    }
+  },
+  {
+    "id": "log-9d454cf2",
+    "timestamp": "2026-09-28T03:17:50.484Z",
+    "action": "GUEST_CREATE",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-1770e263",
+    "guestName": "ทดสอบ ผู้รับบัตร",
+    "details": {
+      "organization": "เพจดูหนังสุดปัง",
+      "seat": null,
+      "seats": []
+    }
+  },
+  {
+    "id": "log-bce3218b",
+    "timestamp": "2026-09-28T03:17:49.659Z",
+    "action": "GUEST_DELETE",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-4cd69d82",
+    "guestName": "Test No Phone",
+    "details": {
+      "organization": "Test",
+      "seat": null
+    }
+  },
+  {
+    "id": "log-cba24193",
+    "timestamp": "2026-09-28T03:17:49.051Z",
+    "action": "GUEST_CREATE",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-4cd69d82",
+    "guestName": "Test No Phone",
+    "details": {
+      "organization": "Test",
+      "seat": null,
+      "seats": []
+    }
+  },
+  {
+    "id": "log-c1df1126",
+    "timestamp": "2026-09-28T03:17:48.547Z",
+    "action": "GUEST_DELETE",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-e96093c6",
+    "guestName": "Test Phone 10 Digits",
+    "details": {
+      "organization": "Test",
+      "seat": null
+    }
+  },
+  {
+    "id": "log-f8c861e2",
+    "timestamp": "2026-09-28T03:17:48.008Z",
+    "action": "GUEST_CREATE",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-e96093c6",
+    "guestName": "Test Phone 10 Digits",
+    "details": {
+      "organization": "Test",
+      "seat": null,
+      "seats": []
+    }
+  },
+  {
+    "id": "log-db3401ba",
+    "timestamp": "2026-09-28T03:17:47.555Z",
+    "action": "CHECK_OUT",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-4d7e42eb",
+    "guestName": "คุณเอ็ม",
+    "details": {
+      "attended": false,
+      "attendedCount": 0,
+      "checkInStatus": "not-checked",
+      "quota": 2
+    }
+  },
+  {
+    "id": "log-cbab10ca",
+    "timestamp": "2026-09-28T03:17:47.123Z",
+    "action": "CHECK_IN",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-4d7e42eb",
+    "guestName": "คุณเอ็ม",
+    "details": {
+      "attended": true,
+      "attendedCount": 2,
+      "checkInStatus": "complete",
+      "quota": 2
+    }
+  },
+  {
+    "id": "log-574ff475",
+    "timestamp": "2026-09-28T03:17:46.577Z",
+    "action": "CHECK_IN",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-4d7e42eb",
+    "guestName": "คุณเอ็ม",
+    "details": {
+      "attended": false,
+      "attendedCount": 1,
+      "checkInStatus": "partial",
+      "quota": 2
+    }
+  },
+  {
+    "id": "log-5ef59b1f",
+    "timestamp": "2026-09-28T03:17:46.105Z",
+    "action": "SEAT_CHECK_OUT",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-4d7e42eb",
+    "guestName": "คุณเอ็ม",
+    "details": {
+      "seat": "I16",
+      "checkedIn": false,
+      "checkInStatus": "not-checked"
+    }
+  },
+  {
+    "id": "log-10dda036",
+    "timestamp": "2026-09-28T03:17:45.631Z",
+    "action": "SEAT_CHECK_IN",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-4d7e42eb",
+    "guestName": "คุณเอ็ม",
+    "details": {
+      "seat": "I16",
+      "checkedIn": true,
+      "checkInStatus": "partial"
+    }
+  },
+  {
+    "id": "log-4917d2a6",
+    "timestamp": "2026-09-28T03:17:45.212Z",
+    "action": "SEAT_CHECK_OUT",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-4d7e42eb",
+    "guestName": "คุณเอ็ม",
+    "details": {
+      "seat": "I16",
+      "checkedIn": false,
+      "checkInStatus": "not-checked"
+    }
+  },
+  {
+    "id": "log-d9e6d939",
+    "timestamp": "2026-09-28T03:17:44.072Z",
+    "action": "GUEST_DELETE",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-578a92a5",
+    "guestName": "Idempotency Test Guest",
+    "details": {
+      "organization": "Testing Corp",
+      "seat": "X30"
+    }
+  },
+  {
+    "id": "log-82b6b143",
+    "timestamp": "2026-09-28T03:17:43.445Z",
+    "action": "CHECK_IN",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-578a92a5",
+    "guestName": "Idempotency Test Guest",
+    "details": {
+      "attended": true,
+      "attendedCount": 1,
+      "checkInStatus": "complete",
+      "quota": 1
+    }
+  },
+  {
+    "id": "log-8fc26fa6",
+    "timestamp": "2026-09-28T03:17:42.879Z",
+    "action": "CHECK_IN",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-578a92a5",
+    "guestName": "Idempotency Test Guest",
+    "details": {
+      "attended": true,
+      "attendedCount": 1,
+      "checkInStatus": "complete",
+      "quota": 1
+    }
+  },
+  {
+    "id": "log-e7a0ac0f",
+    "timestamp": "2026-09-28T03:17:42.274Z",
+    "action": "GUEST_CREATE",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-578a92a5",
+    "guestName": "Idempotency Test Guest",
+    "details": {
+      "organization": "Testing Corp",
+      "seat": "X30",
+      "seats": [
+        {
+          "code": "X30",
+          "checkedIn": false
+        }
+      ]
+    }
+  },
+  {
+    "id": "log-586ecbba",
+    "timestamp": "2026-09-28T03:17:41.442Z",
+    "action": "IMPORT_BATCH",
+    "screeningId": "scr-8110b854",
+    "guestId": null,
+    "guestName": null,
+    "details": {
+      "count": 817,
+      "replaceExisting": true
+    }
+  },
+  {
+    "id": "log-c6d5772c",
+    "timestamp": "2026-09-28T03:17:40.114Z",
+    "action": "GUEST_DELETE",
+    "screeningId": "scr-01",
+    "guestId": "gst-f73ce1f2",
+    "guestName": "ทีมข่าวบันเทิง Workpoint (4 ท่าน)",
+    "details": {
+      "organization": "Workpoint News",
+      "seat": "X11, X12, X13, X14"
+    }
+  },
+  {
+    "id": "log-549f4496",
+    "timestamp": "2026-09-28T03:17:39.542Z",
+    "action": "SEAT_MOVE",
+    "screeningId": "scr-01",
+    "guestId": "gst-f73ce1f2",
+    "guestName": "ทีมข่าวบันเทิง Workpoint (4 ท่าน)",
+    "details": {
+      "moves": [
+        {
+          "from": "X1",
+          "to": "X11"
+        },
+        {
+          "from": "X2",
+          "to": "X12"
+        },
+        {
+          "from": "X3",
+          "to": "X13"
+        },
+        {
+          "from": "X5",
+          "to": "X14"
+        }
+      ],
+      "allSeats": "X11, X12, X13, X14"
+    }
+  },
+  {
+    "id": "log-27895354",
+    "timestamp": "2026-09-28T03:17:38.912Z",
+    "action": "SEAT_MOVE",
+    "screeningId": "scr-01",
+    "guestId": "gst-f73ce1f2",
+    "guestName": "ทีมข่าวบันเทิง Workpoint (4 ท่าน)",
+    "details": {
+      "moves": [
+        {
+          "from": "X4",
+          "to": "X5"
+        }
+      ],
+      "allSeats": "X1, X2, X3, X5"
+    }
+  },
+  {
+    "id": "log-373a8bb8",
+    "timestamp": "2026-09-28T03:17:38.278Z",
+    "action": "WALK_IN_CREATE",
+    "screeningId": "scr-01",
+    "guestId": "gst-f73ce1f2",
+    "guestName": "ทีมข่าวบันเทิง Workpoint (4 ท่าน)",
+    "details": {
+      "seats": [
+        "X1",
+        "X2",
+        "X3",
+        "X4"
+      ],
+      "participant": 4,
+      "attended": true
+    }
+  },
+  {
+    "id": "log-93caf1d7",
+    "timestamp": "2026-09-28T03:16:47.764Z",
+    "action": "CHECK_OUT",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-e6da20b6",
+    "guestName": "True ID  ผู้โชคดี",
+    "details": {
+      "attended": false,
+      "attendedCount": 0,
+      "checkInStatus": "not-checked",
+      "quota": 20
+    }
+  },
+  {
+    "id": "log-cc707030",
+    "timestamp": "2026-09-28T03:16:43.861Z",
+    "action": "SEAT_CHECK_OUT",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-e6da20b6",
+    "guestName": "True ID  ผู้โชคดี",
+    "details": {
+      "seat": "U12",
+      "checkedIn": false,
+      "checkInStatus": "partial"
+    }
+  },
+  {
+    "id": "log-1d2a29e0",
+    "timestamp": "2026-09-28T03:16:41.702Z",
+    "action": "CHECK_IN",
+    "screeningId": "scr-84ce44cf",
+    "guestId": "gst-e6da20b6",
+    "guestName": "True ID  ผู้โชคดี",
+    "details": {
+      "attended": true,
+      "attendedCount": 20,
+      "checkInStatus": "complete",
+      "quota": 20
+    }
+  },
+  {
     "id": "log-a55e3107",
     "timestamp": "2026-09-24T04:04:41.689Z",
     "action": "GUEST_DELETE",

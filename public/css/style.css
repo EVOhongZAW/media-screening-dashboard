@@ -963,6 +963,7 @@ body {
 .seat-hover-card {
   position: fixed;
   z-index: 9999;
+  will-change: left, top;
   background: rgba(15, 23, 42, 0.98);
   border: 1px solid rgba(245, 158, 11, 0.35);
   border-radius: 10px;
@@ -1082,15 +1083,21 @@ body {
 .btn-checkin-toggle {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
+  justify-content: center;
+  gap: 5px;
+  padding: 6px 10px;
   border-radius: var(--radius-sm);
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 600;
   font-family: var(--font-main);
   cursor: pointer;
   transition: all 0.2s ease;
   border: 1px solid transparent;
+  white-space: nowrap;
+  min-height: 44px;
+  min-width: 104px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .btn-checkin-toggle.checked-in {
@@ -1164,6 +1171,28 @@ body {
   flex-wrap: wrap;
 }
 
+/* Toolbar controls: consistent 40px touch target height */
+.toolbar-actions .btn,
+.toolbar-actions .select-dropdown {
+  min-height: 40px;
+}
+
+/* Danger button: visually separated from the main action group */
+.toolbar-actions .btn-danger-soft {
+  margin-left: var(--space-4, 16px);
+  position: relative;
+}
+
+.toolbar-actions .btn-danger-soft::before {
+  content: '';
+  position: absolute;
+  left: calc(-1 * var(--space-4, 16px) / 2 - 0.5px);
+  top: 20%;
+  height: 60%;
+  width: 1px;
+  background: rgba(255, 255, 255, 0.12);
+}
+
 .select-dropdown {
   height: 42px;
   background-color: var(--color-bg-input, #0b0f1a);
@@ -1183,13 +1212,11 @@ body {
   box-shadow: var(--shadow-glow-gold, 0 0 14px rgba(245, 158, 11, 0.28));
 }
 
-/* Guest Table Container */
+/* Guest Table Container (Optimized for smooth scrolling without GPU backdrop-filter overhead) */
 .table-container {
   min-width: 0;
-  background: var(--glass-bg, #111726);
-  backdrop-filter: var(--glass-blur, blur(14px));
-  -webkit-backdrop-filter: var(--glass-blur, blur(14px));
-  border: var(--glass-border, 1px solid rgba(255, 255, 255, 0.10));
+  background: var(--color-bg-surface, #111726);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: var(--radius-lg, 12px);
   overflow-x: auto;
   overflow-y: visible;
@@ -1229,13 +1256,13 @@ body {
 
 /* Fixed column width allocations (8 Columns: Name 18%, Follower 10%, PIC 10%, Detail 24%, Participant 7%, Seat 11%, Tel 10%, Sign 10%) */
 .guest-table th:nth-child(1), .guest-table td:nth-child(1) { width: 18%; max-width: 18%; }
-.guest-table th:nth-child(2), .guest-table td:nth-child(2) { width: 10%; max-width: 10%; }
-.guest-table th:nth-child(3), .guest-table td:nth-child(3) { width: 10%; max-width: 10%; }
+.guest-table th:nth-child(2), .guest-table td:nth-child(2) { width: 10%; max-width: 10%; text-align: right; }
+.guest-table th:nth-child(3), .guest-table td:nth-child(3) { width: 10%; max-width: 10%; min-width: 100px; }
 .guest-table th:nth-child(4), .guest-table td:nth-child(4) { width: 24%; max-width: 24%; }
 .guest-table th:nth-child(5), .guest-table td:nth-child(5) { width: 7%; max-width: 7%; text-align: center; }
 .guest-table th:nth-child(6), .guest-table td:nth-child(6) { width: 11%; max-width: 11%; }
 .guest-table th:nth-child(7), .guest-table td:nth-child(7) { width: 10%; max-width: 10%; }
-.guest-table th:nth-child(8), .guest-table td:nth-child(8) { width: 10%; max-width: 10%; text-align: center; }
+.guest-table th:nth-child(8), .guest-table td:nth-child(8) { width: 10%; max-width: 10%; min-width: 110px; text-align: center; }
 
 .guest-table thead th {
   background-color: rgba(255, 255, 255, 0.025);
@@ -1275,26 +1302,23 @@ body {
 }
 
 .guest-table td {
-  padding: 13px 16px;
+  padding: 12px 16px;
   font-size: var(--fs-base, 13.5px);
   vertical-align: middle;
 }
 
 /* Detail Column Truncation */
 .col-guest-detail {
-  max-width: 0;
   overflow: hidden;
 }
 
 /* Name Column Truncation */
 .col-guest-name {
-  max-width: 0;
   overflow: hidden;
 }
 
 /* Seat Column Truncation */
 .col-guest-seat {
-  max-width: 0;
   overflow: hidden;
 }
 
@@ -1309,7 +1333,6 @@ body {
 
 /* Tel Column Truncation */
 .col-guest-tel {
-  max-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1318,6 +1341,8 @@ body {
 .guest-name-cell {
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
 }
 
 .guest-name {
@@ -1343,7 +1368,6 @@ body {
 
 /* Follower Column */
 .col-guest-follower {
-  max-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1351,6 +1375,12 @@ body {
   font-size: var(--fs-sm, 12.5px);
   font-weight: var(--fw-medium, 500);
   color: var(--color-text-secondary, #cbd5e1);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+#thColFollower {
+  text-align: right;
 }
 
 #thColFollower:hover {
@@ -1360,7 +1390,6 @@ body {
 
 /* PIC Column */
 .col-guest-pic {
-  max-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -2096,6 +2125,7 @@ body {
 }
 
 .pavalai-seats-wrap {
+  contain: layout paint style;
   width: 100%;
   overflow-x: auto;
   padding-bottom: 24px;
@@ -2117,13 +2147,19 @@ body {
 /* Pavalai Row with 48 seat/spacer columns + 2 label columns = 50 columns CSS Grid */
 .pavalai-row {
   contain: layout style;
+  content-visibility: auto;
+  contain-intrinsic-size: 0 26px;
   display: grid;
-  grid-template-columns: 28px repeat(48, minmax(16px, 1fr)) 28px;
+  grid-template-columns: 40px repeat(48, minmax(14px, 1fr)) 40px;
   column-gap: 2.5px;
   row-gap: 0;
   align-items: center;
   position: relative;
   transition: opacity 0.25s ease;
+}
+
+.pavalai-row > * {
+  grid-row: 1;
 }
 
 .pavalai-row.row-tier-hidden {
@@ -2137,9 +2173,13 @@ body {
   text-align: center;
   line-height: 26px;
   height: 26px;
+  width: 40px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  align-self: center;
+  white-space: nowrap;
+  overflow: visible;
   user-select: none;
   cursor: pointer;
   transition: all 0.15s ease;
@@ -2173,7 +2213,6 @@ body {
 /* ================= REALISTIC CINEMA SEAT ARCHITECTURE (PERFORMANCE OPTIMIZED) ================= */
 .cinema-seat {
   contain: layout style paint;
-  will-change: opacity;
   position: relative;
   width: 100%;
   min-width: 14px;
@@ -2191,7 +2230,7 @@ body {
   outline: none;
   user-select: none;
   margin: 0 auto;
-  transition: opacity 0.15s ease;
+  transition: opacity 0.15s ease, border-color 0.15s ease;
 }
 
 .cinema-seat:hover {
@@ -2210,7 +2249,7 @@ body {
   background: #10b981 !important;
   border-color: #34d399 !important;
   color: #ffffff !important;
-  box-shadow: 0 0 10px rgba(16, 185, 129, 0.5) !important;
+  box-shadow: 0 0 6px rgba(16, 185, 129, 0.4) !important;
 }
 
 .cinema-seat.is-checked-in::after,
@@ -2230,7 +2269,6 @@ body {
   align-items: center;
   justify-content: center;
   border: 1px solid #ffffff;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.4);
 }
 
 /* Seat Categories Visual Styles */
@@ -2266,7 +2304,6 @@ body {
   background: var(--seat-category-color) !important;
   color: var(--seat-category-text, #ffffff) !important;
   border: 1px solid rgba(255, 255, 255, 0.35) !important;
-  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.2), 0 1px 3px rgba(0, 0, 0, 0.4);
 }
 
 .cinema-seat.has-category-color .seat-num {
@@ -2275,7 +2312,7 @@ body {
 
 .cinema-seat.has-category-color:hover {
   outline: 2px solid #ffffff !important;
-  box-shadow: 0 0 10px var(--seat-category-color), 0 2px 6px rgba(0, 0, 0, 0.5) !important;
+  box-shadow: 0 0 8px var(--seat-category-color) !important;
   z-index: 6;
 }
 
@@ -2285,7 +2322,7 @@ body {
   background: var(--seat-category-color) !important;
   color: var(--seat-category-text, #ffffff) !important;
   border: 2px solid #10b981 !important;
-  box-shadow: 0 0 12px rgba(16, 185, 129, 0.85), inset 0 0 4px rgba(16, 185, 129, 0.45) !important;
+  box-shadow: 0 0 6px rgba(16, 185, 129, 0.85) !important;
 }
 
 .cinema-seat.has-category-color.is-checked-in::after,
@@ -2305,7 +2342,6 @@ body {
   align-items: center;
   justify-content: center;
   border: 1.5px solid #ffffff;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
   z-index: 4;
 }
 
@@ -2316,9 +2352,45 @@ body {
   transition: opacity 0.2s ease, filter 0.2s ease;
 }
 
+/* Container-level Category Dimming: 0ms JS loop, purely GPU/CSS driven */
+#seatsGrid[data-cat-filter]:not([data-cat-filter="all"]) .cinema-seat {
+  opacity: 0.12 !important;
+  filter: grayscale(0.85);
+  transition: opacity 0.2s ease, filter 0.2s ease;
+}
+#seatsGrid[data-cat-filter="aninetwork"] .cinema-seat[data-category-key="aninetwork"],
+#seatsGrid[data-cat-filter="idol"] .cinema-seat[data-category-key="idol"],
+#seatsGrid[data-cat-filter="luckydraw"] .cinema-seat[data-category-key="luckydraw"],
+#seatsGrid[data-cat-filter="phoenixnext"] .cinema-seat[data-category-key="phoenixnext"],
+#seatsGrid[data-cat-filter="blessingstudio"] .cinema-seat[data-category-key="blessingstudio"],
+#seatsGrid[data-cat-filter="vip"] .cinema-seat[data-category-key="vip"],
+#seatsGrid[data-cat-filter="other"] .cinema-seat[data-category-key="other"] {
+  opacity: 1 !important;
+  filter: none !important;
+}
+
+/* Container-level Seat Status Filtering */
+#seatsGrid[data-seat-filter]:not([data-seat-filter="all"]) .cinema-seat {
+  opacity: 0.15;
+  transition: opacity 0.2s ease;
+}
+#seatsGrid[data-seat-filter="vip"] .cinema-seat.vip-recliner,
+#seatsGrid[data-seat-filter="vip"] .cinema-seat.seat-cat-vip,
+#seatsGrid[data-seat-filter="press"] .cinema-seat.seat-cat-privilege,
+#seatsGrid[data-seat-filter="press"] .cinema-seat.seat-press-booked,
+#seatsGrid[data-seat-filter="creator"] .cinema-seat.seat-cat-standard,
+#seatsGrid[data-seat-filter="creator"] .cinema-seat.seat-creator-booked,
+#seatsGrid[data-seat-filter="checked-in"] .cinema-seat.is-checked-in,
+#seatsGrid[data-seat-filter="checked-in"] .cinema-seat.seat-checked-in,
+#seatsGrid[data-seat-filter="empty"] .cinema-seat:not(.booked) {
+  opacity: 1;
+}
+
 /* Projection Room Block in Row B */
 .pavalai-projection-room {
   grid-column: 18 / 34;
+  grid-row: 1;
+  align-self: center;
   height: 28px;
   background: linear-gradient(180deg, #1e293b, #0f172a);
   border: 1px solid #475569;
@@ -3102,7 +3174,8 @@ body {
   font-weight: var(--fw-bold, 700);
 }
 
-.guest-name-cell {
+/* guest-name-cell in search hover card context: inherits from main definition above */
+.guest-name-cell.inline-variant {
   display: inline-flex;
   align-items: center;
   gap: 6px;

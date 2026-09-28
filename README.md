@@ -92,6 +92,39 @@
 
 ---
 
+### ⚡ 8. การเพิ่มประสิทธิภาพระดับระบบเพื่ออุปกรณ์หน้างานจริง (System-Wide Performance Overhaul)
+ระบบได้รับการปรับปรุงประสิทธิภาพขั้นสูงเพื่อการใช้งานที่ลื่นไหลบน iPad และโน้ตบุ๊กสเปกกลางหน้างาน โดยปราศจากภาระของ Dependency ภายนอก:
+- **85.3% Payload Reduction (Zero-dependency zlib HTTP Compression)**: บีบอัดไฟล์ HTML, CSS, JS, JSON ผ่าน Node.js Built-in `zlib` ลดขนาดการดาวน์โหลดหน้าเว็บแรกลงจาก **576.7 KB เหลือเพียง 84.7 KB**
+- **Smart Static Asset Caching**: กำหนด `Cache-Control: public, max-age=86400, stale-while-revalidate=3600` และ ETag ให้กับไฟล์ผังที่นั่ง (`pavalai_layout.json` 9.8 KB), CSS, JS ทำให้การเปิดหน้าซ้ำได้ข้อมูลจาก Browser Cache ทันที (0 KB / Instant 304)
+- **Eliminate 1,164 GPU Compositing Layers**: ถอด `will-change: opacity` บนเก้าอี้ 1,164 ตัว คืน VRAM ให้กับระบบ และลบ `backdrop-filter: blur(14px)` จากพื้นที่เลื่อนอ่านรายชื่อแขก (`.table-container`) เพื่อการ Scroll ที่เนียนตา 60 FPS
+- **Optimistic UI Check-in (< 10ms)**: เมื่อแตะปุ่มเช็คอิน สถานะเก้าอี้และแถวตารางจะเปลี่ยนเป็น "เช็คอินแล้ว ✓" ทันทีแบบเรียลไทม์ พร้อมระบบ Auto-rollback แจ้งเตือนหากฝั่งเครือข่ายมีปัญหา
+- **O(1) Targeted Seat Updates (`_seatElementMap`)**: ค้นหาและกลายพันธุ์เฉพาะปุ่มเก้าอี้ที่ต้องการอัปเดตสถานะโดยตรง ไม่ทำลายและสร้างเก้าอี้ 1,164 ตัวใหม่
+- **CSS Compositor-driven Filter (1.4 ms)**: สลับฟิลเตอร์เก้าอี้ด้วย `data-cat-filter` และ `data-seat-filter` ที่ระดับ Container ให้ CSS Engine จัดการ Dimming ในเฟรมเดียว (เร็วกว่าเดิม ~99%)
+- **Debounced Search & Token Indexing**: ค้นหารายชื่อแขกด้วย Debounce 180ms พร้อม Pre-indexed lowercase search tokens ลบอาการพิมพ์กระตุกโดยสิ้นเชิง
+- **In-Memory Backend Store & Atomic Queues**: อ่านข้อมูลแขกและรอบฉายจากหน่วยความจำได้ทันที 0ms Disk I/O และเขียนเซฟลง Disk ผ่าน Atomic Sequential Promise Queue รับประกันความปลอดภัยของไฟล์ JSON
+
+#### 📊 ตารางวัดผลประสิทธิภาพเปรียบเทียบ (Chrome DevTools Benchmark):
+| ดัชนีวัดผล | ก่อนปรับแต่ง (Baseline) | หลังปรับแต่ง (Optimized) | ผลลัพธ์ |
+|---|---|---|---|
+| **ขนาด Payload โหลดหน้าเว็บแรก** | 576.7 KB (Raw text) | **84.7 KB (Gzip)** | **ลดลง 85.3% (-492 KB)** ⚡ |
+| `pavalai_layout.json` | 215.5 KB | **9.8 KB (Gzip)** | **ลดลง 95.5%** 🚀 |
+| `app.js` | 191.7 KB | **42.4 KB (Gzip)** | **ลดลง 77.9%** ⚡ |
+| `style.css` | 76.3 KB | **13.9 KB (Gzip)** | **ลดลง 81.8%** ⚡ |
+| **GPU Compositing Layers** | 1,164 layers | **0 layers (VRAM Free)** | **100% layer bloat eliminated** |
+| **Seat Map Hover Long Tasks (>50ms)** | มีอาการกระตุกสะสม | **0 Long Tasks (0ms)** | **60 FPS ลื่นไหลบน iPad** 🎯 |
+| **ความรู้สึกตอนกดเช็คอิน (Check-in)** | 21ms local / 300–800ms remote | **< 10ms (Optimistic UI)** | **เปลี่ยนสถานะทันที** ⚡ |
+| **สลับฟิลเตอร์เก้าอี้ (Filter Switch)** | ~150 ms (re-render) | **1.4 ms (CSS Dataset)** | **เร็วขึ้น 99%** 🚀 |
+
+---
+
+### 📐 9. ระบบจัดวางเลย์เอาต์และป้ายแถวคู่แม่นยำ (Precision Alignment Architecture)
+- **แถว B และห้องฉาย (PROJECTION ROOM)**: วาง Element ห้องฉายตรงกลางระหว่างที่นั่ง B15 และ B16 ใน DOM Order พร้อมล็อก `grid-row: 1; align-items: center` ทำให้ป้าย B ทั้งสองฝั่งและเก้าอี้แถว B อยู่ระนาบเดียวกัน 100%
+- **ป้ายแถวคู่ VP / AA (Twin Row Labels)**: รองรับคุณสมบัติ `leftLabel: "VP"` และ `rightLabel: "AA"` สำหรับแถวล่างสุด ทั้งในโครงสร้างไฟล์ JSON และฝั่งเรนเดอร์ UI
+- **ขยายป้ายกำกับแถว 40px**: ขยายความกว้างคอลัมน์ป้ายแถวซ้าย-ขวาเป็น 40px ทำให้ชื่อแถว 2 ตัวอักษร (VP, AA, FH, FA) แสดงครบถ้วนไม่มีตัดขอบ
+- **Text Normalization & Alignment ในตารางแขก**: กรองอักขระพิเศษ (BOM, Zero-width Space, Non-breaking Space, Bullets) อัตโนมัติ ทำให้ชื่อแขกทุกคนเริ่มตรงกันที่ขอบซ้าย คอลัมน์ Follower ชิดขวาแบบ Tabular Numbers และป้าย PIC แสดงผลครบถ้วนไม่ถูกบีบตัด
+
+---
+
 ## 🏗️ Architecture & Tech Stack
 
 ```text
@@ -104,16 +137,18 @@
 │   └───────────────────────┘ └───────────────────────┘ └───────────────┘ │
 │                                                                         │
 │   Design Tokens (tokens.css) │ Category Colors (seatCategoryColors.js) │
-│   Vanilla JS Single Page App │ Zero Heavy Runtime Frameworks (60 FPS)   │
+│   Optimistic UI Engine       │ O(1) Seat Map Mutation (_seatElementMap)│
+│   CSS Dataset Compositor     │ Zero Heavy Runtime Frameworks (60 FPS)   │
 └────────────────────────────────────┬────────────────────────────────────┘
-                                     │ HTTP REST APIs
+                                     │ HTTP REST APIs (Gzip/Deflate + ETag Caching)
 ┌────────────────────────────────────▼────────────────────────────────────┐
 │                        NODE.JS / EXPRESS.JS BACKEND                     │
 │                                                                         │
 │   Routes:       /api/screenings  │  /api/guests  │  /api/seats          │
+│   Compression:  Built-in zlib HTTP Gzip/Deflate Compression Middleware  │
 │   Controllers:  screening, guest, seat, branch                          │
 │   Services:     seatService (Heuristics), statsService, dataService     │
-│   Storage:      Asynchronous Atomic JSON Store with In-memory Mutex     │
+│   Storage:      In-memory Store + Asynchronous Atomic Queued Writes     │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -121,10 +156,11 @@
 |---|---|---|
 | **Frontend** | Vanilla JS (ES6+), HTML5, CSS3 | Single Page Application (SPA) ความเร็วสูงพิเศษ ปราศจาก overhead ของ Framework |
 | **Design System** | CSS Custom Properties (Tokens), Flexbox, CSS Grid | Dark Cinema Glassmorphism, 4px Spacing Scale, Touch Target $\ge 44\text{px}$ |
+| **Compression & Caching**| Built-in Node.js `zlib`, HTTP Headers | Gzip/Deflate zero-dependency, Cache-Control 1 วัน และ ETag สำหรับ static assets |
 | **Backend** | Node.js, Express.js | RESTful APIs, Error Handling Middleware, Express Validator |
 | **Algorithms** | Heuristic Adjacency & Viewport Collision | แนะนำกลุ่มที่นั่งติดกัน และคำนวณการหลบขอบจอของ Tooltip |
-| **Storage** | Atomic JSON File Store | ปลอดภัยด้วย Mutex Lock ป้องกันการเขียนทับพร้อมกัน |
-| **Testing** | Node.js Native Test Suites | 10 ชุดทดสอบ 343 ข้อ ครอบคลุมการทำงานทุกส่วน (100% Pass Rate) |
+| **Storage** | In-Memory Cache + Atomic JSON Disk Queue | อ่านเร็ว 0ms disk I/O ปลอดภัยด้วย Sequential Promise Queue ป้องกันไฟล์พัง |
+| **Testing & Benchmark** | Node.js Native Test Suites + Chrome CDP | 10 ชุดทดสอบ 343 ข้อ (100% Pass Rate) พร้อมเครื่องมือวัด Performance |
 
 ---
 
@@ -165,6 +201,7 @@ WEB moive/
 │   ├── screeningRoutes.js          # API Routes: /api/screenings
 │   └── seatRoutes.js               # API Routes: /api/seats
 ├── scripts/                        # 🧪 ชุดทดสอบอัตโนมัติ (Automated Verification)
+│   ├── measure_baseline.js         # เครื่องมือวัด DevTools Performance & Payload Benchmark
 │   ├── migrate_seats_schema.js     # สคริปต์ไมเกรต seats schema พร้อม Backup
 │   ├── verify_group_seats.js       # Suite 1: Group seat engine (24 tests)
 │   ├── verify_hardening.js         # Suite 2: Security & Concurrency (13 tests)

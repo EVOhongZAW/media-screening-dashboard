@@ -515,13 +515,16 @@ async function handleDeleteScreening() {
 
 // Setup event listeners for filtering, modals, search
 function setupEventListeners() {
-  // Search input
+  // Search input (180ms debounce for smooth non-blocking typing)
   const searchInput = document.getElementById('guestSearchInput');
   if (searchInput) {
-    searchInput.addEventListener('input', (e) => {
-      state.filters.search = e.target.value;
+    const debouncedSearch = debounce((val) => {
+      state.filters.search = val;
       state.guestPage = 1;
       renderGuestTable();
+    }, 180);
+    searchInput.addEventListener('input', (e) => {
+      debouncedSearch(e.target.value);
     });
   }
 
@@ -658,13 +661,32 @@ function setupEventListeners() {
     });
   });
 
-  // Seat View Filter Buttons
+  // Seat View Filter Buttons (0ms fast switching without rebuilding 1,164 seats)
   document.querySelectorAll('.seat-filter-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.seat-filter-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       state.activeSeatFilter = btn.dataset.filter;
-      renderSeatsGrid();
+      const container = document.getElementById('seatsGrid');
+      if (container) {
+        container.dataset.seatFilter = state.activeSeatFilter;
+      }
+      if (window._seatElementMap && window._seatElementMap.size > 0) {
+        window._seatElementMap.forEach(seatBtn => {
+          let match = true;
+          const isVip = seatBtn.classList.contains('vip-recliner');
+          const isCheckedIn = seatBtn.classList.contains('is-checked-in');
+          const isBooked = seatBtn.classList.contains('booked');
+          if (state.activeSeatFilter === 'vip') match = isVip;
+          else if (state.activeSeatFilter === 'press') match = (seatBtn.classList.contains('seat-cat-privilege') || seatBtn.classList.contains('seat-press-booked'));
+          else if (state.activeSeatFilter === 'creator') match = (seatBtn.classList.contains('seat-cat-standard') || seatBtn.classList.contains('seat-creator-booked'));
+          else if (state.activeSeatFilter === 'checked-in') match = isCheckedIn;
+          else if (state.activeSeatFilter === 'empty') match = !isBooked;
+          seatBtn.classList.toggle('seat-dimmed', !match);
+        });
+      } else {
+        renderSeatsGrid();
+      }
     });
   });
 
@@ -947,6 +969,51 @@ function extractAttendeeNameFromDetail(detailText, mediaName = '') {
   return '';
 }
 
+/**
+ * normalizeText — strips leading/trailing invisible chars and bullet prefixes from
+ * names that arrive from Google Sheets or CSV with encoding artifacts.
+ * Removes: whitespace, NBSP (\u00A0), ZWSP (\u200B), BOM (\uFEFF),
+ *          common bullet chars (•·‣⁃), and leading dashes.
+ * Defined early so parseCsvOrTsv can use it at import time.
+ */
+function normalizeText(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/^[\s\u00A0\u200B\uFEFF\u2022\u2023\u25E6\u2043\u2024\u00B7\u2014\u2013\-•·]+/, '')
+    .replace(/[\s\u00A0\u200B\uFEFF]+$/, '')
+    .trim();
+}
+
+/**
+ * debounce — delays function execution until user pauses typing/activity
+ */
+function debounce(fn, delay) {
+  let timer = null;
+  return function(...args) {
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(() => {
+      fn.apply(this, args);
+    }, delay);
+  };
+}
+
+/**
+ * indexGuestSearchTokens — pre-computes a single normalized lowercase search string
+ * for O(1) query matching without allocating/lowercasing 7 strings per guest on every keystroke.
+ */
+function indexGuestSearchTokens(guest) {
+  if (!guest) return;
+  guest._searchTokens = [
+    guest.name,
+    guest.detail,
+    guest.organization,
+    guest.pic,
+    guest.seat,
+    guest.phone,
+    guest.participant ? String(guest.participant) : ''
+  ].filter(Boolean).join(' ').toLowerCase();
+}
+
 function parseCsvOrTsv(rawText) {
   if (!rawText || !rawText.trim()) return [];
 
@@ -1101,14 +1168,14 @@ function parseCsvOrTsv(rawText) {
 
     let noVal = colNo >= 0 && cols[colNo] !== undefined ? cols[colNo] : (parsedList.length + 1);
     
-    let nameVal = colName >= 0 && cols[colName] !== undefined ? cols[colName].trim() : '';
+    let nameVal = colName >= 0 && cols[colName] !== undefined ? normalizeText(cols[colName]) : '';
     let detailVal = colDetail >= 0 && cols[colDetail] !== undefined ? cols[colDetail].trim() : '';
     let rawQty = colParticipant >= 0 && cols[colParticipant] !== undefined ? cols[colParticipant].trim() : '';
     let seatVal = colSeat >= 0 && cols[colSeat] !== undefined ? cols[colSeat].trim() : '';
     let signVal = colSign >= 0 && cols[colSign] !== undefined ? cols[colSign].trim() : '';
     let telVal = colTel >= 0 && cols[colTel] !== undefined ? cols[colTel].trim() : '';
     let followerVal = colFollower >= 0 && cols[colFollower] !== undefined ? cols[colFollower].trim() : '';
-    let picVal = colPic >= 0 && cols[colPic] !== undefined ? cols[colPic].trim() : '';
+    let picVal = colPic >= 0 && cols[colPic] !== undefined ? normalizeText(cols[colPic]) : '';
 
     // If Tel is not in a dedicated column, extract telephone from Detail if available
     if (!telVal && detailVal) {
@@ -1503,7 +1570,7 @@ function setupCsvImportModal() {
 }
 
 // Refresh all data from backend (filtered by active screening)
-// Targeted DOM helper: updates .is-checked-in on specific seat elements without full map re-render
+// Targeted DOM helper: updates .is-checked-in on specific seat elements via O(1) Map lookup without full map re-render
 function updateSeatsCheckInDom(seatIds, isCheckedIn) {
   if (!seatIds) return;
   const list = Array.isArray(seatIds) ? seatIds : [seatIds];
@@ -1512,14 +1579,17 @@ function updateSeatsCheckInDom(seatIds, isCheckedIn) {
 
   list.forEach(id => {
     const cleanId = String(id).trim().toUpperCase();
-    const btn = container.querySelector(`.cinema-seat[data-seat-id="${cleanId}"]`);
+    const btn = (window._seatElementMap && window._seatElementMap.get(cleanId)) ||
+      container.querySelector(`.cinema-seat[data-seat-id="${cleanId}"]`);
     if (btn) {
       if (isCheckedIn) {
         btn.classList.add('is-checked-in');
         btn.classList.add('seat-checked-in');
+        btn.dataset.seatStatus = 'checked-in';
       } else {
         btn.classList.remove('is-checked-in');
         btn.classList.remove('seat-checked-in');
+        btn.dataset.seatStatus = btn.classList.contains('booked') ? 'booked' : 'empty';
       }
     }
   });
@@ -1542,6 +1612,9 @@ async function refreshData(options = {}) {
     }
     if (guestsRes.success) {
       state.guests = guestsRes.data;
+      if (Array.isArray(state.guests)) {
+        state.guests.forEach(indexGuestSearchTokens);
+      }
       window._cachedSeatsMap = null;
       window._cachedSeatsMapTime = null;
     }
@@ -1812,9 +1885,10 @@ function applyCategoryFilter(catKey) {
     btn.classList.toggle('active', btn.dataset.category === state.activeCategoryFilter);
   });
 
-  // Apply dimming directly on DOM for 60fps instant response without rebuilding 1,164 seats
+  // Apply dimming via container data attribute (0ms CSS compositing) + class fallback
   const container = document.getElementById('seatsGrid');
   if (!container) return;
+  container.dataset.catFilter = state.activeCategoryFilter;
 
   const seats = container.querySelectorAll('.cinema-seat');
   seats.forEach(btn => {
@@ -1852,6 +1926,13 @@ function renderSeatsGrid() {
   computeSeatColorsCache(seatsMap);
   updateCategoryLegendCounts(seatsMap);
   container.innerHTML = '';
+  window._seatElementMap = new Map();
+
+  // Set container filter data attributes for instant CSS-driven filtering
+  container.dataset.catFilter = state.activeCategoryFilter || 'all';
+  container.dataset.seatFilter = state.activeSeatFilter || 'all';
+
+  const fragment = document.createDocumentFragment();
 
   if (state.pavalaiLayout && state.pavalaiLayout.rows && state.pavalaiLayout.rows.length > 0) {
     let hasDrawnBalconyDivider = false;
@@ -1871,7 +1952,7 @@ function renderSeatsGrid() {
           <span class="balcony-divider-title"><i class="fa-solid fa-crown"></i> ชั้นลอย ROYAL BALCONY (ชั้น 2 · 245 ที่นั่ง)</span>
           <span class="balcony-rail-line"></span>
         `;
-        container.appendChild(divider);
+        fragment.appendChild(divider);
       }
 
       const rowEl = document.createElement('div');
@@ -1894,42 +1975,55 @@ function renderSeatsGrid() {
         tierDesc = 'VIP Stalls';
       }
 
-      const displayLabel = labelStr === 'VP / AA' ? 'AA' : labelStr;
-      const rowTitle = `แถว ${labelStr} (${tierDesc}) · ${rowData.seats.length} ที่นั่ง (คลิกดูสรุปแถว)`;
+      const displayLabelLeft = rowData.leftLabel || (labelStr === 'VP / AA' ? 'VP' : labelStr);
+      const displayLabelRight = rowData.rightLabel || (labelStr === 'VP / AA' ? 'AA' : labelStr);
+      const rowTitle = labelStr === 'VP / AA'
+        ? `แถว VP (ซ้าย) / AA (ขวา) (${tierDesc}) · ${rowData.seats.length} ที่นั่ง (คลิกดูสรุปแถว)`
+        : `แถว ${labelStr} (${tierDesc}) · ${rowData.seats.length} ที่นั่ง (คลิกดูสรุปแถว)`;
 
       // Left Row Label Badge (ป้ายระบุแถวฝั่งซ้ายสุด)
       const labelLeft = document.createElement('div');
       labelLeft.className = `row-label label-left ${tierClass}`;
-      labelLeft.textContent = displayLabel;
+      labelLeft.textContent = displayLabelLeft;
       labelLeft.dataset.row = labelStr;
       labelLeft.title = rowTitle;
       rowEl.appendChild(labelLeft);
 
-      // Special Projection Room in Row B
-      if (rowData.label === 'B') {
+      // Render Seats in this Row (Projection Room rendered inside Row B between seat 15 and 16)
+      let projRoomAdded = false;
+      rowData.seats.forEach(s => {
+        if (rowData.label === 'B' && !projRoomAdded && s.num >= 16) {
+          const projRoom = document.createElement('div');
+          projRoom.className = 'pavalai-projection-room';
+          projRoom.innerHTML = '<i class="fa-solid fa-video"></i> PROJECTION ROOM ห้องฉาย';
+          rowEl.appendChild(projRoom);
+          projRoomAdded = true;
+        }
+
+        const seatBtn = createSeatButtonPavalai(s, rowData, seatsMap);
+        seatBtn.style.gridColumn = (s.col - 4);
+        rowEl.appendChild(seatBtn);
+      });
+
+      // Fallback if Row B had no seats >= 16
+      if (rowData.label === 'B' && !projRoomAdded) {
         const projRoom = document.createElement('div');
         projRoom.className = 'pavalai-projection-room';
         projRoom.innerHTML = '<i class="fa-solid fa-video"></i> PROJECTION ROOM ห้องฉาย';
         rowEl.appendChild(projRoom);
       }
 
-      // Render Seats in this Row
-      rowData.seats.forEach(s => {
-        const seatBtn = createSeatButtonPavalai(s, rowData, seatsMap);
-        seatBtn.style.gridColumn = (s.col - 4);
-        rowEl.appendChild(seatBtn);
-      });
-
       // Right Row Label Badge (ป้ายระบุแถวฝั่งขวาสุด)
       const labelRight = document.createElement('div');
       labelRight.className = `row-label label-right ${tierClass}`;
-      labelRight.textContent = displayLabel;
+      labelRight.textContent = displayLabelRight;
       labelRight.dataset.row = labelStr;
       labelRight.title = rowTitle;
       rowEl.appendChild(labelRight);
 
-      container.appendChild(rowEl);
+      fragment.appendChild(rowEl);
     });
+    container.appendChild(fragment);
   } else {
     // Fallback legacy grid
     const activeRows = getActiveRows();
@@ -2051,9 +2145,18 @@ function createSeatButtonPavalai(seatData, rowData, seatsMap) {
   if (isCheckedIn) {
     btn.classList.add('is-checked-in');
     btn.classList.add('seat-checked-in');
+    btn.dataset.seatStatus = 'checked-in';
+  } else {
+    btn.dataset.seatStatus = guest ? 'booked' : 'empty';
   }
 
+  btn.dataset.seatType = isVip ? 'vip' : (seatData.category === 'privilege' ? 'press' : (seatData.category === 'balcony' ? 'balcony' : 'creator'));
+
   btn.innerHTML = `<span class="seat-num">${seatData.num}</span>`;
+
+  if (window._seatElementMap) {
+    window._seatElementMap.set(seatId.toUpperCase(), btn);
+  }
 
   return btn;
 }
@@ -2492,19 +2595,45 @@ function showSeatDetails(seatId) {
   }
 }
 
-// Action: Quick Live Check-In Toggle
+// Action: Quick Live Check-In Toggle with Optimistic UI (< 50ms instant response)
 window.toggleGuestCheckIn = async function(guestId, overrideOptions = {}) {
+  const guest = state.guests.find(g => g.id === guestId);
+  if (!guest) return;
+
+  // If guest has participant > 1 and not yet signed, and not explicitly skipping modal
+  if (!overrideOptions.confirmedWarning && !overrideOptions.checkInAnyway && !overrideOptions.skipPartialModal && !guest.attended && (guest.participant || 1) > 1) {
+    openPartialCheckInModal(guest);
+    return;
+  }
+
+  const willBeAttended = overrideOptions.attended !== undefined ? overrideOptions.attended : !guest.attended;
+
+  // Snapshot previous state for rollback
+  const prevAttended = guest.attended;
+  const prevAttendedCount = guest.attendedCount;
+  const prevStatus = guest.checkInStatus;
+  const prevSeats = Array.isArray(guest.seats) ? JSON.parse(JSON.stringify(guest.seats)) : null;
+
+  // 1. Instant Optimistic UI Mutation (< 10ms)
+  guest.attended = willBeAttended;
+  guest.attendedCount = willBeAttended ? (overrideOptions.attendedCount || guest.participant || 1) : 0;
+  guest.checkInStatus = willBeAttended ? 'complete' : 'not-checked';
+  if (Array.isArray(guest.seats)) {
+    guest.seats.forEach(s => {
+      if (typeof s === 'object') s.checkedIn = willBeAttended;
+    });
+  }
+
+  const guestSeats = Array.isArray(guest.seats)
+    ? guest.seats.map(s => typeof s === 'object' ? s.code : s)
+    : (guest.seat ? expandSeatRanges(guest.seat) : []);
+  updateSeatsCheckInDom(guestSeats, willBeAttended);
+  if (!updateSingleGuestTableRow(guestId)) {
+    renderGuestTable();
+  }
+
+  // 2. Background API Call
   try {
-    const guest = state.guests.find(g => g.id === guestId);
-    if (!guest) return;
-
-    // If guest has participant > 1 and not yet signed, and not explicitly skipping modal
-    if (!overrideOptions.confirmedWarning && !overrideOptions.checkInAnyway && !overrideOptions.skipPartialModal && !guest.attended && (guest.participant || 1) > 1) {
-      openPartialCheckInModal(guest);
-      return;
-    }
-
-    const willBeAttended = overrideOptions.attended !== undefined ? overrideOptions.attended : !guest.attended;
     const res = await API.checkInGuest(guestId, {
       attended: willBeAttended,
       attendedCount: overrideOptions.attendedCount,
@@ -2514,34 +2643,54 @@ window.toggleGuestCheckIn = async function(guestId, overrideOptions = {}) {
     });
 
     if (res.requiresWarningConfirmation) {
+      // Rollback optimistic update
+      guest.attended = prevAttended;
+      guest.attendedCount = prevAttendedCount;
+      guest.checkInStatus = prevStatus;
+      if (prevSeats) guest.seats = prevSeats;
+      updateSeatsCheckInDom(guestSeats, prevAttended);
+      if (!updateSingleGuestTableRow(guestId)) renderGuestTable();
       openPreCheckInModal(res.guest, res.missingWarning, false);
       return;
     }
 
     if (res.success) {
+      if (res.guest) {
+        Object.assign(guest, res.guest);
+        indexGuestSearchTokens(guest);
+      }
       showToast(willBeAttended ? `เช็คอินคุณ ${guest.name} เรียบร้อยแล้ว 🎬` : `ยกเลิกการเช็คอินคุณ ${guest.name}`);
       
-      // Targeted DOM update for the guest's seats immediately without rebuilding 1,164 seats!
-      const guestSeats = Array.isArray(guest.seats)
-        ? guest.seats.map(s => typeof s === 'object' ? s.code : s)
-        : (guest.seat ? expandSeatRanges(guest.seat) : []);
-      updateSeatsCheckInDom(guestSeats, willBeAttended);
+      // Update single row with exact server response data
+      if (!updateSingleGuestTableRow(guestId)) {
+        renderGuestTable();
+      }
 
-      // Refresh overview counters and guest list table, but skip destroying the 1,164-seat grid!
-      await refreshData({ skipSeatsGrid: true });
+      // Background refresh overview counters without freezing the UI
+      API.fetchJSON(`/api/stats/overview-cinema${state.activeScreeningId ? '?screeningId=' + state.activeScreeningId : ''}`).then(oRes => {
+        if (oRes.success) {
+          state.overview = oRes.data;
+          renderOverview();
+        }
+      }).catch(() => {});
 
       if (state.selectedSeat) showSeatDetails(state.selectedSeat);
-      if (state.selectedGuestId) showGuestDetails(state.selectedGuestId);
+      if (state.selectedGuestId === guestId) showGuestDetails(guestId);
     }
   } catch (err) {
+    // Rollback on network/validation error
+    guest.attended = prevAttended;
+    guest.attendedCount = prevAttendedCount;
+    guest.checkInStatus = prevStatus;
+    if (prevSeats) guest.seats = prevSeats;
+    updateSeatsCheckInDom(guestSeats, prevAttended);
+    if (!updateSingleGuestTableRow(guestId)) renderGuestTable();
+
     if (err.message && (err.message.includes('PRE_CHECKIN_VALIDATION_FAILED') || err.message.includes('ข้อมูลสำคัญไม่ครบ'))) {
-      const guest = state.guests.find(g => g.id === guestId);
-      if (guest) {
-        openPreCheckInModal(guest, [], true);
-        return;
-      }
+      openPreCheckInModal(guest, [], true);
+      return;
     }
-    showToast('เกิดข้อผิดพลาดในการเช็คอิน: ' + err.message, 'error');
+    showToast('เกิดข้อผิดพลาดในการเช็คอิน (ย้อนกลับสถานะเดิม): ' + err.message, 'error');
   }
 };
 
@@ -2652,25 +2801,20 @@ function validatePhone12(phoneStr) {
 window.validatePhone = validatePhone;
 window.validatePhone12 = validatePhone;
 
-function renderGuestTable() {
-  const tbody = document.getElementById('guestTableBody');
-  if (!tbody) return;
+function isGuestCheckedIn(g) {
+  if (g.checkInStatus === 'complete' || g.checkInStatus === 'partial') return true;
+  if (g.attended) return true;
+  if (Array.isArray(g.seats) && g.seats.some(s => s.checkedIn)) return true;
+  return (g.attendedCount > 0);
+}
 
-  tbody.innerHTML = '';
-
-  const isGuestChecked = (g) => {
-    if (g.checkInStatus === 'complete' || g.checkInStatus === 'partial') return true;
-    if (g.attended) return true;
-    if (Array.isArray(g.seats) && g.seats.some(s => s.checkedIn)) return true;
-    return (g.attendedCount > 0);
-  };
-
-  // 1. Update Tab Badge Counts across all guests in current screening
+function updateGuestTabBadgeCounts() {
+  if (!Array.isArray(state.guests)) return;
   const countAll = state.guests.length;
   const countUnassigned = state.guests.filter(g => !g.seat || g.seat.trim() === '').length;
   const countAssigned = state.guests.filter(g => !!g.seat && g.seat.trim() !== '').length;
-  const countCheckedIn = state.guests.filter(isGuestChecked).length;
-  const countNotChecked = state.guests.filter(g => !isGuestChecked(g)).length;
+  const countCheckedIn = state.guests.filter(isGuestCheckedIn).length;
+  const countNotChecked = state.guests.filter(g => !isGuestCheckedIn(g)).length;
 
   const elCountAll = document.getElementById('tabCountAll');
   const elCountUnassigned = document.getElementById('tabCountUnassigned');
@@ -2683,6 +2827,43 @@ function renderGuestTable() {
   if (elCountAssigned) elCountAssigned.textContent = countAssigned;
   if (elCountCheckedIn) elCountCheckedIn.textContent = countCheckedIn;
   if (elCountNotChecked) elCountNotChecked.textContent = countNotChecked;
+}
+
+function updateSingleGuestTableRow(guestId) {
+  const tr = document.querySelector(`#guestTableBody tr[data-guest-id="${guestId}"]`);
+  if (!tr) return false;
+  const guest = state.guests.find(g => g.id === guestId);
+  if (!guest) return false;
+
+  const signCell = tr.querySelector('.col-guest-sign');
+  if (signCell) {
+    signCell.innerHTML = renderCheckInButtonHtml(guest);
+  }
+
+  const seatCell = tr.querySelector('.col-guest-seat');
+  if (seatCell) {
+    const hasSeat = guest.seat && guest.seat.trim() !== '';
+    if (hasSeat) {
+      seatCell.innerHTML = `
+        <span class="seat-badge assigned" title="ที่นั่งที่จัดสรร: ${escapeHtml(guest.seat)}">
+          <i class="fa-solid fa-chair" style="font-size: 11px; margin-right: 3px;"></i>${escapeHtml(guest.seat)}
+        </span>
+      `;
+    }
+  }
+
+  updateGuestTabBadgeCounts();
+  return true;
+}
+
+function renderGuestTable() {
+  const tbody = document.getElementById('guestTableBody');
+  if (!tbody) return;
+
+  tbody.innerHTML = '';
+
+  // 1. Update Tab Badge Counts across all guests in current screening
+  updateGuestTabBadgeCounts();
 
   // 2. Filter Guests
   let filtered = [...state.guests];
@@ -2690,15 +2871,10 @@ function renderGuestTable() {
 
   if (search) {
     const q = search.toLowerCase().trim();
-    filtered = filtered.filter(g =>
-      (g.name && g.name.toLowerCase().includes(q)) ||
-      (g.detail && g.detail.toLowerCase().includes(q)) ||
-      (g.organization && g.organization.toLowerCase().includes(q)) ||
-      (g.pic && g.pic.toLowerCase().includes(q)) ||
-      (g.seat && g.seat.toLowerCase().includes(q)) ||
-      (g.phone && g.phone.includes(q)) ||
-      (g.participant && String(g.participant).includes(q))
-    );
+    filtered = filtered.filter(g => {
+      if (!g._searchTokens) indexGuestSearchTokens(g);
+      return g._searchTokens.includes(q);
+    });
   }
 
   // Quick Tab Filter
@@ -2708,18 +2884,18 @@ function renderGuestTable() {
     } else if (tab === 'assigned') {
       filtered = filtered.filter(g => !!g.seat && g.seat.trim() !== '');
     } else if (tab === 'checked-in') {
-      filtered = filtered.filter(isGuestChecked);
+      filtered = filtered.filter(isGuestCheckedIn);
     } else if (tab === 'not-checked') {
-      filtered = filtered.filter(g => !isGuestChecked(g));
+      filtered = filtered.filter(g => !isGuestCheckedIn(g));
     }
   }
 
   // Dropdown Check-In Filter
   if (checkIn && checkIn !== 'all') {
     if (checkIn === 'checked-in') {
-      filtered = filtered.filter(isGuestChecked);
+      filtered = filtered.filter(isGuestCheckedIn);
     } else if (checkIn === 'not-checked') {
-      filtered = filtered.filter(g => !isGuestChecked(g));
+      filtered = filtered.filter(g => !isGuestCheckedIn(g));
     }
   }
 
@@ -2782,8 +2958,11 @@ function renderGuestTable() {
     return;
   }
 
+  const fragment = document.createDocumentFragment();
+
   pageItems.forEach(guest => {
     const tr = document.createElement('tr');
+    tr.dataset.guestId = guest.id;
     if (state.selectedGuestId === guest.id) {
       tr.classList.add('selected');
     }
@@ -2793,7 +2972,7 @@ function renderGuestTable() {
     tr.innerHTML = `
       <td class="col-guest-name">
         <div class="guest-name-cell">
-          <span class="guest-name" title="${escapeHtml(guest.name || '-')}">${escapeHtml(guest.name || '-')}</span>
+          <span class="guest-name" title="${escapeHtml(normalizeText(guest.name) || '-')}">${escapeHtml(normalizeText(guest.name) || '-')}</span>
           ${guest.organization ? `<span class="guest-org-subtitle" title="${escapeHtml(guest.organization)}">${escapeHtml(guest.organization)}</span>` : ''}
           ${guest.source === 'walk_in' ? '<span class="badge" style="background: rgba(45, 212, 191, 0.15); color: var(--color-teal); font-size: 10px; padding: 1px 5px; border-radius: 4px; display: inline-block; margin-top: 2px;">Walk-in</span>' : ''}
         </div>
@@ -2839,15 +3018,18 @@ function renderGuestTable() {
       </td>
     `;
 
-    tr.addEventListener('click', () => {
+    tr.onclick = (e) => {
+      if (e.target.closest('button') || e.target.closest('a')) return;
       state.selectedGuestId = guest.id;
-      document.querySelectorAll('.guest-table tbody tr').forEach(r => r.classList.remove('selected'));
+      tbody.querySelectorAll('tr.selected').forEach(r => r.classList.remove('selected'));
       tr.classList.add('selected');
       showGuestDetails(guest.id);
-    });
+    };
 
-    tbody.appendChild(tr);
+    fragment.appendChild(tr);
   });
+
+  tbody.appendChild(fragment);
 
   if (state.selectedGuestId) {
     showGuestDetails(state.selectedGuestId);
@@ -3410,6 +3592,10 @@ function escapeHtml(str) {
     .replace(/'/g, '&#039;');
 }
 window.escapeHtml = escapeHtml;
+
+// normalizeText is defined early (before parseCsvOrTsv) — expose on window for test access
+window.normalizeText = normalizeText;
+
 
 // ================= OPERATIONS SUITE FUNCTIONS =================
 

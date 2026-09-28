@@ -133,6 +133,13 @@ async function run() {
   const parseFuncCode = appJsCode.substring(startIdx, endIdx);
   const parseCsvOrTsv = new Function('rawText', `
     function expandSeatRanges(s) { return s; }
+    function normalizeText(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/^[\\s\\u00A0\\u200B\\uFEFF\\u2022\\u2023\\u25E6\\u2043\\u2024\\u00B7\\u2014\\u2013\\-\\u2022\\u00B7]+/, '')
+        .replace(/[\\s\\u00A0\\u200B\\uFEFF]+$/, '')
+        .trim();
+    }
     ${parseFuncCode}
     return parseCsvOrTsv(rawText);
   `);

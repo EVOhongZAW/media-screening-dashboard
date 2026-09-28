@@ -133,7 +133,19 @@ exports.getByGuestType = async (filters) => {
     })).sort((a, b) => b.count - a.count);
 };
 
+// In-Memory cache for cinema overview stats
+const overviewCinemaCache = new Map();
+
+global._invalidateStatsCache = () => {
+    overviewCinemaCache.clear();
+};
+
 exports.getOverviewCinema = async (screeningId) => {
+    const cacheKey = screeningId || '__all__';
+    if (overviewCinemaCache.has(cacheKey)) {
+        return JSON.parse(JSON.stringify(overviewCinemaCache.get(cacheKey)));
+    }
+
     let guests = await readData('guests.json');
     let totalSeats = 1164;
 
@@ -192,7 +204,7 @@ exports.getOverviewCinema = async (screeningId) => {
     const checkInRate = totalGuests > 0 ? Math.round((checkedInTotal / totalGuests) * 100) : 0;
     const seatOccupancyRate = totalSeats > 0 ? Math.round((bookedSeats / totalSeats) * 100) : 0;
 
-    return {
+    const result = {
         totalGuests,
         totalParticipants,
         checkedIn,
@@ -208,5 +220,12 @@ exports.getOverviewCinema = async (screeningId) => {
         checkInRate,
         seatOccupancyRate
     };
+
+    overviewCinemaCache.set(cacheKey, result);
+    return JSON.parse(JSON.stringify(result));
+};
+
+exports.clearStatsCache = () => {
+    overviewCinemaCache.clear();
 };
 

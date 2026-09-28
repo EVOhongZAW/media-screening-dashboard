@@ -78,7 +78,7 @@ const appJs = fs.readFileSync(path.join(__dirname, '..', 'public', 'js', 'app.js
 const rowLabelChecks = [
   ['CSS: .label-left grid-column: 1', css.includes('.pavalai-row .row-label.label-left') && css.includes('grid-column: 1;')],
   ['CSS: .label-right grid-column: 50', css.includes('.pavalai-row .row-label.label-right') && css.includes('grid-column: 50;')],
-  ['CSS: pavalai-row 50 columns grid', css.includes('grid-template-columns: 28px repeat(48, minmax(16px, 1fr)) 28px;')],
+  ['CSS: pavalai-row 50 columns grid', css.includes('grid-template-columns: 40px repeat(48, minmax(14px, 1fr)) 40px;')],
   ['CSS: Projection room grid-column: 18 / 34', css.includes('grid-column: 18 / 34;')],
   ['JS: Seat grid-column mapped with s.col - 4', appJs.includes('(s.col - 4)')],
   ['JS: Twin left & right row badges rendered', appJs.includes('rowEl.appendChild(labelLeft)') && appJs.includes('rowEl.appendChild(labelRight)')]
@@ -110,14 +110,15 @@ console.log('\n--- Suite 6: Redesigned Table Columns (Name, Detail, Participant,
 const guestCtrl = fs.readFileSync(path.join(__dirname, '..', 'controllers', 'guestController.js'), 'utf8');
 
 const columnChecks = [
-  ['HTML: Table header Name (ชื่อแขก)', html.includes('Name (ชื่อแขก)</th>')],
-  ['HTML: Table header Detail (รายละเอียด)', html.includes('Detail (รายละเอียด)</th>')],
-  ['HTML: Table header Participant', html.includes('Participant</th>')],
-  ['HTML: Table header Seat (ที่นั่ง)', html.includes('Seat (ที่นั่ง)</th>')],
-  ['HTML: Table header Tel (เบอร์โทร)', html.includes('Tel (เบอร์โทร)</th>')],
-  ['HTML: Table header Sign (เช็คอิน)', html.includes('Sign (เช็คอิน)</th>')],
+  // Header labels — accept both old long form and new short form (after alignment fix)
+  ['HTML: Table header Name (ชื่อแขก)', html.includes('Name (ชื่อแขก)</th>') || html.includes('Name (ชื่อ)</th>')],
+  ['HTML: Table header Detail (รายละเอียด)', html.includes('Detail (รายละเอียด)</th>') || html.includes('Detail</th>')],
+  ['HTML: Table header Participant', html.includes('Participant</th>') || html.includes('จำนวน</th>')],
+  ['HTML: Table header Seat (ที่นั่ง)', html.includes('Seat (ที่นั่ง)</th>') || html.includes('Seat</th>')],
+  ['HTML: Table header Tel (เบอร์โทร)', html.includes('Tel (เบอร์โทร)</th>') || html.includes('เบอร์โทร</th>')],
+  ['HTML: Table header Sign (เช็คอิน)', html.includes('Sign (เช็คอิน)</th>') || html.includes('Sign</th>')],
   ['HTML: No obsolete Media table header', !html.includes('<th>Media (สื่อ / สังกัด)</th>') && !html.includes('<th style="width: 20%;">Media')],
-  ['HTML: Import modal preview headers updated', (html.includes('Name (ชื่อผู้รับ)') || html.includes('Name (ชื่อแขก)')) && (html.includes('สื่อ (Media)') || html.includes('Detail (รายละเอียด)'))],
+  ['HTML: Import modal preview headers updated', (html.includes('Name (ชื่อผู้รับ)') || html.includes('Name (ชื่อแขก)') || html.includes('Name (ชื่อ)')) && (html.includes('สื่อ (Media)') || html.includes('Detail (รายละเอียด)') || html.includes('Detail</th>'))],
   ['JS: app.js parseCsvOrTsv supports multiline RFC-4180', appJs.includes('parseCsvOrTsv') && appJs.includes('isGoogleForm3Col')],
   ['JS: app.js renderGuestTable renders Name first then Detail', appJs.includes('guest-name') && appJs.includes('guest-detail')],
   ['JS: app.js renderImportPreview renders Name first then Detail', appJs.includes('item.name') && appJs.includes('item.detail || item.organization')],

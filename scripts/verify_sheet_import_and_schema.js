@@ -242,7 +242,7 @@ async function run() {
 
   // 1. 8 Table Headers
   assert('HTML: Contains Follower table header with sort icon', html.includes('id="thColFollower"') && html.includes('id="iconSortFollower"'));
-  assert('HTML: Contains PIC table header', html.includes('PIC (ผู้ดูแล)'));
+  assert('HTML: Contains PIC table header', html.includes('PIC (ผู้ดูแล)') || html.includes('>PIC</th>'));
   assert('HTML: Contains PIC filter dropdown (#filterPic)', html.includes('id="filterPic"'));
 
   // 2. Add Guest modal Follower and PIC inputs

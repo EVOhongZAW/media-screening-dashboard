@@ -1078,6 +1078,7 @@ exports.importBatch = async (req, res, next) => {
                 pic: picVal,
                 phone: (item.phone && item.phone.trim()) || '',
                 email: (item.email && item.email.trim()) || '',
+                link: item.link || null,
                 guestType: item.guestType || 'press',
                 status: item.status || 'accepted',
                 seat: seatString,
@@ -1104,10 +1105,22 @@ exports.importBatch = async (req, res, next) => {
             details: { count: processed.length, replaceExisting: !!replaceExisting }
         });
 
+        const skippedReport = (req.body.skipped && Array.isArray(req.body.skipped)) ? req.body.skipped : [];
+        const warningsReport = (req.body.warnings && Array.isArray(req.body.warnings)) ? req.body.warnings : [];
+
         res.json({
             success: true,
             message: `นำเข้าข้อมูลสำเร็จ ${processed.length} รายการ (ผ่านการตรวจสอบความถูกต้องเรียบร้อย)`,
-            data: { count: processed.length }
+            inserted: processed.length,
+            count: processed.length,
+            skipped: skippedReport,
+            warnings: warningsReport,
+            data: {
+                inserted: processed.length,
+                count: processed.length,
+                skipped: skippedReport,
+                warnings: warningsReport
+            }
         });
     } catch (error) {
         next(error);

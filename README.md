@@ -117,7 +117,29 @@
 
 ---
 
-### 📐 9. ระบบจัดวางเลย์เอาต์และป้ายแถวคู่แม่นยำ (Precision Alignment Architecture)
+### 📑 9. ระบบนำเข้าไฟล์ Excel (.xlsx / .xls) และ CSV อัจฉริยะ (Enterprise Excel Ingestion Pipeline)
+ระบบนำเข้าข้อมูลแขกที่ได้รับการอัปเกรดให้รองรับไฟล์สเปรดชีตทุกรูปแบบแบบ All-in-One ไม่ว่าจะเป็นไฟล์ Excel รุ่นใหม่ (`.xlsx`), Excel รุ่นเดิม (`.xls`), ไฟล์ข้อความ (`.csv`, `.tsv`, `.txt`), หรือการ Copy & Paste จาก Clipboard เข้าสู่ Pipeline เดียวกันอย่างสมบูรณ์:
+
+- **Zero-overhead Lazy Loading**: โหลดไลบรารี **SheetJS (xlsx v0.20.3)** ที่ Vendored เก็บไว้ในเครื่อง (`/public/vendor/xlsx/xlsx.full.min.js`) เฉพาะเมื่อผู้ใช้เปิดหน้าต่างนำเข้าข้อมูลเท่านั้น ไม่ส่งผลกระทบต่อขนาด Payload ตอนเปิดหน้าเว็บแรกแม้แต่ไบต์เดียว
+- **Off-thread Web Worker (`excelWorker.js`)**: ประมวลผลและอ่านข้อมูล Excel ใน Worker Thread แยกส่วน ไม่แย่ง CPU ของ Main Thread หน้าเว็บยังคงตอบสนองลื่นไหล ไม่มีอาการค้างหรือกระตุก แม้เปิดไฟล์ที่มีข้อมูลหลายร้อยแถว
+- **จัดการ 10 หลุมพรางคลาสสิกของ Excel ครบถ้วน (Excel Pitfalls Resolution)**:
+  1. *เบอร์โทรศัพท์*: กู้คืนเลข `0` นำหน้าที่ Excel มักตัดทิ้งอัตโนมัติ (เช่น `891234567` $\rightarrow$ `0891234567`), แปลง Scientific Notation (`8.91E+08` $\rightarrow$ `0891234567`) พร้อมแจ้งเตือนหากเบอร์ไม่ครบ 10 หลัก
+  2. *Hyperlinked Media Name*: หากชื่อสื่อฝังลิงก์ URL มา ระบบจะดึงชื่อสื่อมาแสดงในช่อง `organization` และสกัดลิงก์เป้าหมายไปเก็บในฟิลด์ `link` อย่างถูกต้อง ไม่นำ URL มาทับชื่อสื่อ
+  3. *Merged Cells (`ws['!merges']`)*: ส่งต่อค่าจาก Master Cell ไปยังทุกเซลล์ย่อยที่ถูกควบรวม ป้องกันแถวถัดไปกลายเป็นค่าว่าง
+  4. *Formula Cells*: อ่านค่าที่ประเมินผลไว้แล้ว (`cell.w` / `cell.v`) โดยไม่ประเมินสูตรใหม่
+  5. *Multiline Detail & Recipient Extraction*: คงค่าบรรทัดใหม่ `\n` และ bullet `•` สกัดชื่อผู้รับบัตร (`name`) และสลับใช้ชื่อสื่อเป็น Fallback หากไม่พบ
+  6. *ตัวเลขปนข้อความ*: แปลงคอมมาในยอดผู้ติดตาม `"1,200,000"` $\rightarrow$ `1200000`, สกัดตัวเลขโควตาจากข้อความ เช่น `"(โควตา 2 ใบ)"` $\rightarrow$ `2`
+  7. *จำนวนที่ไม่ใช่ตัวเลข (VIP, เชิญ, ไม่ว่าง, ติดงาน)*: กรองแยกแถวเหล่านี้ไปยังรายการข้าม (Skipped Rows) พร้อมบันทึกสาเหตุชัดเจน ไม่เดาตัวเลขสุ่มสี่สุ่มห้า
+  8. *แถวว่างเปล่า*: ข้ามแถวที่ไม่มีข้อมูลโดยไม่แสดง Error
+  9. *ความปลอดภัยสูงสุด*: ปฏิเสธไฟล์ Macro (`.xlsm` / VBA) ทันทีผ่าน Magic Bytes ตรวจจับ และทำการ Sanitization ป้องกัน XSS ทุกเซลล์
+  10. *ตรวจความถูกต้องของที่นั่ง 2 ชั้น*: ตรวจสอบรหัสที่นั่งกับผังโรงภาวลัย, ตรวจการซ้ำกันเองภายในไฟล์, และตรวจการชนกับแขกเดิมในระบบ พร้อมระบบแนะนำที่นั่งใกล้เคียง
+- **Interactive Virtualized Preview Table**: พรีวิวข้อมูลแบ่งหน้า (Pagination 50 แถวต่อหน้า) แก้ไขข้อมูลในตารางได้โดยตรงก่อนกดยืนยัน (Inline Editable Cells)
+- **Status Filter Tabs**: กรองดูรายการ *ทั้งหมด (All)*, *รายการที่มีข้อควรระวัง (Issues)*, *รายการที่ผิดพลาด (Error)*, และ *รายการที่ถูกต้อง (OK)*
+- **Excel Template & Skipped Rows Export**: มีปุ่มดาวน์โหลดไฟล์แม่แบบตัวอย่าง (`cinema_guest_template.xlsx`) และปุ่มดาวน์โหลดรายการแถวที่ถูกข้ามพร้อมสาเหตุเป็นไฟล์ Excel (`cinema_guests_skipped_review.xlsx`)
+
+---
+
+### 📐 10. ระบบจัดวางเลย์เอาต์และป้ายแถวคู่แม่นยำ (Precision Alignment Architecture)
 - **แถว B และห้องฉาย (PROJECTION ROOM)**: วาง Element ห้องฉายตรงกลางระหว่างที่นั่ง B15 และ B16 ใน DOM Order พร้อมล็อก `grid-row: 1; align-items: center` ทำให้ป้าย B ทั้งสองฝั่งและเก้าอี้แถว B อยู่ระนาบเดียวกัน 100%
 - **ป้ายแถวคู่ VP / AA (Twin Row Labels)**: รองรับคุณสมบัติ `leftLabel: "VP"` และ `rightLabel: "AA"` สำหรับแถวล่างสุด ทั้งในโครงสร้างไฟล์ JSON และฝั่งเรนเดอร์ UI
 - **ขยายป้ายกำกับแถว 40px**: ขยายความกว้างคอลัมน์ป้ายแถวซ้าย-ขวาเป็น 40px ทำให้ชื่อแถว 2 ตัวอักษร (VP, AA, FH, FA) แสดงครบถ้วนไม่มีตัดขอบ
@@ -191,10 +213,15 @@ WEB moive/
 │   ├── js/
 │   │   ├── api.js                  # Fetch Wrapper สำหรับสื่อสารกับ Backend API
 │   │   ├── app.js                  # ตัวควบคุมหลักฝั่ง UI, Event Handlers, Tooltips
+│   │   ├── excelImporter.js        # 📑 Core Excel/CSV Ingestion & Validation Pipeline
+│   │   ├── excelWorker.js          # ⚙️ Web Worker อ่านไฟล์ Excel แบบ Off-thread
 │   │   ├── seatCategoryColors.js   # 🎨 Single Source of Truth หมวดหมู่สีที่นั่ง
 │   │   ├── seat-picker.js          # Unified Tri-modal SeatPicker Component
 │   │   └── table.js                # โมดูลจัดการตารางแขก
-│   └── index.html                  # หน้าแดชบอร์ดหลัก (Portal Pattern Tooltip)
+│   ├── vendor/
+│   │   └── xlsx/
+│   │       └── xlsx.full.min.js    # 📦 Vendored SheetJS v0.20.3 (Lazy-loaded)
+│   └── index.html                  # หน้าแดชบอร์ดหลัก (Portal Pattern Tooltip & Excel Import Modal)
 ├── routes/
 │   ├── branchRoutes.js             # API Routes: /api/branches
 │   ├── guestRoutes.js              # API Routes: /api/guests
@@ -212,7 +239,8 @@ WEB moive/
 │   ├── verify_table_layout.js      # Suite 7: Table Layout & Truncation (20 tests)
 │   ├── verify_sheet_import_and_schema.js     # Suite 8: Google Sheet 6-col (52 tests)
 │   ├── verify_seat_category_colors.js        # Suite 9: Category Colors v2 (69 tests)
-│   └── verify_tooltip_positioning.js         # Suite 10: Smart Tooltip Flip (40 tests)
+│   ├── verify_tooltip_positioning.js         # Suite 10: Smart Tooltip Flip (40 tests)
+│   └── verify_excel_import.js                # Suite 11: Enterprise Excel Pipeline (35 tests)
 ├── nodemon.json
 ├── package.json
 └── server.js                       # จุดเริ่มต้นระบบ Express Server
@@ -254,7 +282,7 @@ http://localhost:3000/media-screening-dashboard
 
 ## 🧪 การทดสอบระบบอัตโนมัติ (Automated Test Suites)
 
-ระบบมีชุดทดสอบอัตโนมัติครอบคลุม 10 หมวดหมู่ รวม **343 รายการทดสอบ (100% Pass Rate)**:
+ระบบมีชุดทดสอบอัตโนมัติครอบคลุม 11 หมวดหมู่ รวม **378 รายการทดสอบ (100% Pass Rate)**:
 
 ```bash
 npm test
@@ -273,9 +301,11 @@ npm test
   8.  verify_sheet_import_and_schema.js:     52 / 52  PASSED (100%)
   9.  verify_seat_category_colors.js:        69 / 69  PASSED (100%)
   10. verify_tooltip_positioning.js:         40 / 40  PASSED (100%)
+  11. verify_excel_import.js:                35 / 35  PASSED (100%)
 ===============================================================
-  GRAND TOTAL: 343 / 343 Tests PASSED (100%)
+  GRAND TOTAL: 378 / 378 Tests PASSED (100%)
 ===============================================================
+```
 ```
 
 ---

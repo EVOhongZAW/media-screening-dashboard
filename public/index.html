@@ -795,25 +795,28 @@
 
   <!-- Modal: Import CSV / Excel -->
   <div class="modal-overlay hidden" id="modalImportCsv">
-    <div class="modal-box" style="width: 860px; max-width: 94vw; max-height: 92vh; display: flex; flex-direction: column;">
+    <div class="modal-box" style="width: 920px; max-width: 95vw; max-height: 94vh; display: flex; flex-direction: column;">
       <div class="modal-header">
-        <h3 class="modal-title"><i class="fa-solid fa-file-csv" style="color: var(--color-gold);"></i> นำเข้าข้อมูลแขกและผังที่นั่งจาก CSV / Excel</h3>
+        <h3 class="modal-title"><i class="fa-solid fa-file-excel" style="color: #10b981;"></i> นำเข้าข้อมูลแขกและผังที่นั่งจาก Excel (.xlsx) / CSV</h3>
         <button class="btn-close" id="btnCloseImportCsvModal"><i class="fa-solid fa-xmark"></i></button>
       </div>
 
-      <div style="padding: 20px 24px; overflow-y: auto; flex: 1;">
-        <div class="import-instructions">
-          <p>รองรับหัวคอลัมน์: <strong>Name (ชื่อสื่อ), Follower, PIC, Participant (จำนวน), Detail (รายละเอียด/ชื่อผู้รับ), SEAT Value (ที่นั่ง)</strong> หรือรูปแบบมาตรฐานทั่วไป (Copy จาก Google Sheets / Excel มาวางได้ทันที)</p>
+      <div style="padding: 16px 22px; overflow-y: auto; flex: 1;">
+        <div class="import-instructions" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+          <p style="margin: 0; flex: 1; font-size: 0.85rem;">รองรับไฟล์ <strong>Excel (.xlsx, .xls)</strong> และ <strong>CSV / TSV</strong> หรือ Copy & Paste จาก Google Sheets เข้าสู่ระบบได้ทันที</p>
+          <button type="button" class="btn btn-secondary" id="btnDownloadExcelTemplate" style="background: rgba(16, 185, 129, 0.15); color: #10b981; border-color: rgba(16, 185, 129, 0.4); font-size: 0.82rem; height: 34px; padding: 0 12px;">
+            <i class="fa-solid fa-file-excel"></i> ดาวน์โหลดเทมเพลต Excel (.xlsx)
+          </button>
         </div>
 
-        <div class="import-tabs">
-          <button type="button" class="import-tab-btn active" data-tab="paste" id="tabBtnPaste"><i class="fa-solid fa-paste"></i> วางข้อมูล (Copy & Paste)</button>
-          <button type="button" class="import-tab-btn" data-tab="file" id="tabBtnFile"><i class="fa-solid fa-file-arrow-up"></i> เลือกไฟล์ CSV</button>
+        <div class="import-tabs" style="margin-top: 12px;">
+          <button type="button" class="import-tab-btn" data-tab="paste" id="tabBtnPaste"><i class="fa-solid fa-paste"></i> วางข้อมูล (Copy & Paste)</button>
+          <button type="button" class="import-tab-btn active" data-tab="file" id="tabBtnFile"><i class="fa-solid fa-file-excel"></i> เลือก/ลากไฟล์ Excel / CSV</button>
         </div>
 
         <!-- Tab 1: Paste Text -->
-        <div class="import-tab-content" id="tabContentPaste">
-          <textarea id="importCsvTextarea" class="import-textarea" rows="7" placeholder="วางข้อมูลที่คัดลอกจาก Google Sheets หรือ Excel ที่นี่...
+        <div class="import-tab-content hidden" id="tabContentPaste">
+          <textarea id="importCsvTextarea" class="import-textarea" rows="6" placeholder="วางข้อมูลที่คัดลอกจาก Google Sheets หรือ Excel ที่นี่...
 ตัวอย่าง:
 Name	Detail	Participant	Seat	Tel
 พี่นัท	akai peanut	2	B16-B17	081-xxx-xxxx
@@ -822,18 +825,41 @@ Name	Detail	Participant	Seat	Tel
         </div>
 
         <!-- Tab 2: File Upload -->
-        <div class="import-tab-content hidden" id="tabContentFile">
+        <div class="import-tab-content" id="tabContentFile">
           <div class="drop-zone" id="csvDropZone">
-            <i class="fa-solid fa-cloud-arrow-up drop-zone-icon"></i>
-            <p class="drop-zone-text">ลากไฟล์ CSV มาวางที่นี่ หรือคลิกปุ่มด้านล่าง</p>
-            <input type="file" id="csvFileInput" accept=".csv, .txt, .tsv" class="hidden">
-            <button type="button" class="btn btn-secondary" id="btnBrowseCsvFile">เลือกไฟล์จากเครื่อง (.csv)</button>
+            <i class="fa-solid fa-cloud-arrow-up drop-zone-icon" style="color: #10b981;"></i>
+            <p class="drop-zone-text">ลากไฟล์ Excel (.xlsx, .xls) หรือ CSV มาวางที่นี่ หรือคลิกปุ่มด้านล่าง (สูงสุด 10MB)</p>
+            <input type="file" id="csvFileInput" accept=".xlsx, .xls, .csv, .txt, .tsv" class="hidden">
+            <button type="button" class="btn btn-secondary" id="btnBrowseCsvFile"><i class="fa-solid fa-folder-open"></i> เลือกไฟล์จากเครื่อง (.xlsx, .xls, .csv)</button>
             <span class="file-chosen-name" id="chosenFileName">ยังไม่ได้เลือกไฟล์</span>
           </div>
         </div>
 
+        <!-- Multi-sheet & Header Row Selector (Appears for Excel) -->
+        <div class="sheet-selector-bar hidden" id="excelSheetSelectorBar" style="margin-top: 12px; display: flex; align-items: center; gap: 10px; background: rgba(30, 41, 59, 0.6); padding: 8px 14px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.08); flex-wrap: wrap;">
+          <span style="font-weight: 500; font-size: 0.85rem; color: var(--color-gold);"><i class="fa-solid fa-layer-group"></i> เลือกแผ่นงาน (Sheet):</span>
+          <select id="excelSheetSelect" class="form-control" style="max-width: 200px; height: 32px; padding: 2px 8px; font-size: 0.82rem;"></select>
+          <span style="font-size: 0.8rem; color: var(--color-text-muted);" id="excelSheetRowCount"></span>
+          
+          <div style="margin-left: auto; display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 0.82rem; color: var(--color-text-muted);">แถวหัวตาราง:</span>
+            <input type="number" id="excelHeaderRowInput" class="form-control" value="1" min="1" max="20" style="width: 50px; height: 32px; text-align: center; font-size: 0.82rem;">
+            <button type="button" class="btn btn-secondary" id="btnApplyHeaderRow" style="height: 32px; padding: 0 10px; font-size: 0.8rem;">นำไปใช้</button>
+          </div>
+        </div>
+
+        <!-- Column Mapping Accordion -->
+        <div class="column-mapping-wrapper hidden" id="columnMappingWrapper" style="margin-top: 10px;">
+          <div class="mapping-toggle-btn" id="btnToggleColumnMapping" style="display: flex; align-items: center; justify-content: space-between; cursor: pointer; background: rgba(15, 23, 42, 0.7); padding: 8px 14px; border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.08);">
+            <span style="font-weight: 500; font-size: 0.84rem; color: var(--color-text-main);"><i class="fa-solid fa-sliders" style="color: var(--color-gold); margin-right: 6px;"></i> การจับคู่คอลัมน์ (Column Mapping): <span id="mappingSummaryText" style="color: #10b981; font-size: 0.82rem;">จับคู่อัตโนมัติแล้ว</span></span>
+            <span style="font-size: 0.78rem; color: var(--color-text-muted);" id="mappingToggleText">ตรวจ/ปรับแก้ <i class="fa-solid fa-chevron-down"></i></span>
+          </div>
+          <div class="mapping-grid hidden" id="columnMappingGrid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px; padding: 12px; background: rgba(15, 23, 42, 0.9); border: 1px solid rgba(255, 255, 255, 0.08); border-top: none; border-radius: 0 0 6px 6px;">
+          </div>
+        </div>
+
         <!-- Options -->
-        <div class="import-options-row">
+        <div class="import-options-row" style="margin: 10px 0;">
           <label class="import-option-label">
             <input type="radio" name="importMode" value="append" checked>
             <span>เพิ่มข้อมูลต่อจากแขกเดิมในรอบนี้</span>
@@ -844,37 +870,56 @@ Name	Detail	Participant	Seat	Tel
           </label>
         </div>
 
-        <label class="import-filter-toggle" id="labelFilterConfirmedOnly">
+        <label class="import-filter-toggle" id="labelFilterConfirmedOnly" style="margin: 6px 0;">
           <input type="checkbox" id="chkImportConfirmedOnly" checked>
           <span><i class="fa-solid fa-filter" style="color: var(--color-gold); margin-right: 4px;"></i> <strong>นำเข้าเฉพาะแขกที่ยืนยันเข้าร่วม</strong> (ตัดรายการว่าง/ยังไม่ตอบรับออกอัตโนมัติ)</span>
         </label>
 
         <!-- Summary Statistics Pills for File -->
         <div class="import-summary-bar hidden" id="importSummaryBar">
-          <div class="stat-pill confirmed"><i class="fa-solid fa-circle-check"></i> ยืนยันเข้าร่วม: <strong id="sumConfirmedCount">0</strong> รายการ (<span id="sumConfirmedSeats">0</span> ที่นั่ง)</div>
-          <div class="stat-pill empty"><i class="fa-solid fa-clock"></i> ยังไม่ตอบรับ/ว่าง: <strong id="sumEmptyCount">0</strong> รายการ</div>
-          <div class="stat-pill declined"><i class="fa-solid fa-circle-xmark"></i> สละสิทธิ์/ไม่สะดวก: <strong id="sumDeclinedCount">0</strong> รายการ</div>
+          <div class="stat-pill confirmed" id="pillImportOk" title="คลิกเพื่อกรองดูเฉพาะแถวที่สมบูรณ์"><i class="fa-solid fa-circle-check"></i> พร้อมนำเข้า: <strong id="sumOkCount">0</strong></div>
+          <div class="stat-pill warning" id="pillImportWarning" title="คลิกเพื่อกรองดูเฉพาะแถวที่มีคำเตือน"><i class="fa-solid fa-triangle-exclamation"></i> มีคำเตือน: <strong id="sumWarningCount">0</strong></div>
+          <div class="stat-pill error" id="pillImportError" title="คลิกเพื่อกรองดูเฉพาะแถวที่เกิด Error"><i class="fa-solid fa-circle-xmark"></i> ข้อผิดพลาด (Error): <strong id="sumErrorCount">0</strong></div>
+          <div class="stat-pill skipped" id="pillImportSkipped" title="คลิกเพื่อดูรายการที่ระบบข้าม"><i class="fa-solid fa-forward"></i> ข้าม: <strong id="sumSkippedCount">0</strong></div>
+          <div class="stat-pill info" style="margin-left: auto;"><i class="fa-solid fa-users"></i> รวมคน: <strong id="sumTotalParticipants">0</strong> | ที่นั่ง: <strong id="sumTotalSeats">0</strong></div>
         </div>
 
-        <!-- Preview Summary -->
+        <!-- Preview Controls & Table -->
         <div class="import-preview-wrapper hidden" id="importPreviewWrapper">
-          <div class="preview-header">
-            <span class="preview-title"><i class="fa-solid fa-table-list"></i> ตัวอย่างข้อมูลที่จะนำเข้า (<span id="previewCount">0</span> รายการ)</span>
-            <span class="preview-seat-count" id="previewSeatCount">ที่นั่งรวม: 0 ที่</span>
+          <div class="preview-header" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span class="preview-title"><i class="fa-solid fa-table-list"></i> ตัวอย่างข้อมูล (<span id="previewCount">0</span> รายการ)</span>
+              <!-- Filter Buttons inside preview -->
+              <div class="preview-filter-group" style="display: inline-flex; gap: 4px; margin-left: 10px;">
+                <button type="button" class="preview-filter-btn active" data-filter="all">ทั้งหมด</button>
+                <button type="button" class="preview-filter-btn" data-filter="issues">เฉพาะที่มีปัญหา</button>
+                <button type="button" class="preview-filter-btn" data-filter="error">Error</button>
+                <button type="button" class="preview-filter-btn" data-filter="ok">ผ่านการตรวจ</button>
+              </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <span class="preview-seat-count" id="previewSeatCount">ที่นั่งรวม: 0 ที่</span>
+              <!-- Pagination controls -->
+              <div class="preview-pagination" id="previewPagination" style="display: flex; align-items: center; gap: 6px; font-size: 0.8rem;">
+                <button type="button" class="btn btn-secondary" id="btnPreviewPrevPage" style="height: 26px; padding: 0 8px; font-size: 0.75rem;">&lt;</button>
+                <span id="previewPageIndicator" style="color: var(--color-text-muted);">1 / 1</span>
+                <button type="button" class="btn btn-secondary" id="btnPreviewNextPage" style="height: 26px; padding: 0 8px; font-size: 0.75rem;">&gt;</button>
+              </div>
+            </div>
           </div>
-          <div class="preview-table-container">
+          <div class="preview-table-container" style="max-height: 380px; overflow: auto;">
             <table class="preview-table">
               <thead>
                 <tr>
-                  <th>ลำดับ</th>
-                  <th>Name (ชื่อผู้รับ)</th>
-                  <th>สื่อ (Media)</th>
-                  <th>Follower</th>
-                  <th>PIC</th>
-                  <th>จำนวน</th>
-                  <th>Seat (ที่นั่ง)</th>
-                  <th>Tel (เบอร์โทร)</th>
-                  <th>สถานะ</th>
+                  <th style="width: 50px;">แถว</th>
+                  <th>Name (ผู้รับบัตร)</th>
+                  <th>สื่อ / เพจ (Media)</th>
+                  <th style="width: 90px;">Follower</th>
+                  <th style="width: 95px;">PIC</th>
+                  <th style="width: 65px;">จำนวน</th>
+                  <th style="width: 100px;">Seat (ที่นั่ง)</th>
+                  <th style="width: 110px;">เบอร์โทร</th>
+                  <th style="width: 110px;">สถานะ</th>
                 </tr>
               </thead>
               <tbody id="previewTableBody"></tbody>
@@ -882,12 +927,47 @@ Name	Detail	Participant	Seat	Tel
           </div>
         </div>
 
-        <div class="modal-actions" style="margin-top: 20px; padding: 0;">
+        <div class="modal-actions" style="margin-top: 16px; padding: 0; display: flex; align-items: center; justify-content: flex-end; gap: 10px;">
           <button type="button" class="btn btn-secondary" id="btnCancelImportCsv">ยกเลิก</button>
           <button type="button" class="btn btn-primary" id="btnConfirmImportCsv" disabled>
             <i class="fa-solid fa-check"></i> ยืนยันการนำเข้าข้อมูล
           </button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Post-Import Report -->
+  <div class="modal-overlay hidden" id="modalImportReport">
+    <div class="modal-box" style="width: 720px; max-width: 94vw; max-height: 90vh; display: flex; flex-direction: column;">
+      <div class="modal-header">
+        <h3 class="modal-title"><i class="fa-solid fa-square-poll-vertical" style="color: var(--color-gold);"></i> รายงานผลการนำเข้าข้อมูล</h3>
+        <button class="btn-close" id="btnCloseImportReportModal"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div style="padding: 20px 24px; overflow-y: auto; flex: 1;">
+        <div id="importReportSummaryContent"></div>
+        <div id="importReportSkippedWrapper" style="margin-top: 16px;">
+          <h4 style="font-size: 0.9rem; color: #f59e0b; margin-bottom: 8px;"><i class="fa-solid fa-triangle-exclamation"></i> รายการที่ระบบข้าม (ต้องตรวจสอบ):</h4>
+          <div style="max-height: 240px; overflow-y: auto; border: 1px solid rgba(255,255,255,0.08); border-radius: 6px;">
+            <table class="preview-table" style="width: 100%;">
+              <thead>
+                <tr>
+                  <th style="width: 60px;">แถว</th>
+                  <th>ชื่อสื่อ/ผู้รับ</th>
+                  <th style="width: 80px;">จำนวน</th>
+                  <th>เหตุผลที่ข้าม</th>
+                </tr>
+              </thead>
+              <tbody id="importReportSkippedTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div class="modal-actions" style="padding: 14px 24px; background: rgba(15, 23, 42, 0.7); display: flex; justify-content: space-between; align-items: center;">
+        <button type="button" class="btn btn-secondary" id="btnDownloadSkippedRowsExcel" style="background: rgba(16, 185, 129, 0.15); color: #10b981; border-color: rgba(16, 185, 129, 0.4);">
+          <i class="fa-solid fa-file-excel"></i> ดาวน์โหลดรายการที่ข้ามเป็นไฟล์ Excel (.xlsx)
+        </button>
+        <button type="button" class="btn btn-primary" id="btnFinishImportReport">เรียบร้อย</button>
       </div>
     </div>
   </div>
@@ -1314,6 +1394,7 @@ Name	Detail	Participant	Seat	Tel
   <script src="/js/api.js"></script>
   <script src="/js/seatCategoryColors.js"></script>
   <script src="/js/seat-picker.js"></script>
+  <script src="/js/excelImporter.js"></script>
   <script src="/js/app.js"></script>
 </body>
 </html>

@@ -1293,6 +1293,33 @@ function parseCsvOrTsv(rawText) {
 }
 
 let currentParsedGuests = [];
+let currentRawRows = [];
+let currentColumnMapping = {};
+let currentHeaderRowIdx = 0;
+let currentWorkbookSheets = [];
+let currentFileBuffer = null;
+let currentFileName = '';
+let currentPreviewFilter = 'all';
+let currentPreviewPage = 1;
+let currentImportResult = null;
+let lastSkippedRows = [];
+const PREVIEW_PAGE_SIZE = 50;
+let excelWorkerInstance = null;
+
+function getExcelWorker() {
+  if (typeof window.Worker !== 'undefined') {
+    try {
+      if (!excelWorkerInstance) {
+        excelWorkerInstance = new Worker('/js/excelWorker.js');
+      }
+      return excelWorkerInstance;
+    } catch (e) {
+      console.warn('Could not initialize Excel Web Worker, falling back to main thread:', e);
+      return null;
+    }
+  }
+  return null;
+}
 
 function setupCsvImportModal() {
   const modal = document.getElementById('modalImportCsv');
@@ -1309,6 +1336,29 @@ function setupCsvImportModal() {
   const dropZone = document.getElementById('csvDropZone');
   const chosenFileName = document.getElementById('chosenFileName');
   const chkConfirmedOnly = document.getElementById('chkImportConfirmedOnly');
+  const btnDownloadTemplate = document.getElementById('btnDownloadExcelTemplate');
+
+  // Sheet & Mapping Controls
+  const sheetSelectorBar = document.getElementById('excelSheetSelectorBar');
+  const sheetSelect = document.getElementById('excelSheetSelect');
+  const sheetRowCount = document.getElementById('excelSheetRowCount');
+  const headerRowInput = document.getElementById('excelHeaderRowInput');
+  const btnApplyHeaderRow = document.getElementById('btnApplyHeaderRow');
+  const mappingWrapper = document.getElementById('columnMappingWrapper');
+  const btnToggleMapping = document.getElementById('btnToggleColumnMapping');
+  const mappingGrid = document.getElementById('columnMappingGrid');
+  const mappingToggleText = document.getElementById('mappingToggleText');
+
+  // Report Modal Controls
+  const modalReport = document.getElementById('modalImportReport');
+  const btnCloseReport = document.getElementById('btnCloseImportReportModal');
+  const btnFinishReport = document.getElementById('btnFinishImportReport');
+  const btnDownloadSkipped = document.getElementById('btnDownloadSkippedRowsExcel');
+
+  // Pagination Controls
+  const btnPrevPage = document.getElementById('btnPreviewPrevPage');
+  const btnNextPage = document.getElementById('btnPreviewNextPage');
+  const pageIndicator = document.getElementById('previewPageIndicator');
 
   if (!modal) return;
 
@@ -1333,12 +1383,30 @@ function setupCsvImportModal() {
     if (e.target === modal) closeModal();
   });
 
+  // Download Template Handler
+  if (btnDownloadTemplate) {
+    btnDownloadTemplate.addEventListener('click', async () => {
+      try {
+        if (window.ExcelImporter) {
+          await window.ExcelImporter.generateTemplateExcel();
+          showToast('ดาวน์โหลดเทมเพลต Excel เรียบร้อยแล้ว');
+        }
+      } catch (err) {
+        showToast('ไม่สามารถสร้างเทมเพลต Excel ได้: ' + err.message, 'error');
+      }
+    });
+  }
+
+  // Tabs Toggle
   if (tabBtnPaste && tabBtnFile) {
     tabBtnPaste.addEventListener('click', () => {
       tabBtnPaste.classList.add('active');
       tabBtnFile.classList.remove('active');
       tabContentPaste.classList.remove('hidden');
       tabContentFile.classList.add('hidden');
+      if (textarea && textarea.value.trim()) {
+        processTextInput(textarea.value);
+      }
     });
 
     tabBtnFile.addEventListener('click', () => {
@@ -1349,10 +1417,11 @@ function setupCsvImportModal() {
     });
   }
 
+  // Textarea input
   if (textarea) {
-    ['input', 'paste', 'keyup', 'change'].forEach(evt => {
+    ['input', 'paste', 'change'].forEach(evt => {
       textarea.addEventListener(evt, () => {
-        setTimeout(renderImportPreview, 20);
+        setTimeout(() => processTextInput(textarea.value), 30);
       });
     });
   }
@@ -1370,7 +1439,7 @@ function setupCsvImportModal() {
   if (fileInput) {
     fileInput.addEventListener('change', (e) => {
       const file = e.target.files && e.target.files[0];
-      if (file) handleSelectedCsvFile(file);
+      if (file) handleSelectedFile(file);
     });
   }
 
@@ -1386,39 +1455,326 @@ function setupCsvImportModal() {
       e.preventDefault();
       dropZone.classList.remove('drag-over');
       const file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
-      if (file) handleSelectedCsvFile(file);
+      if (file) handleSelectedFile(file);
     });
   }
 
-  function handleSelectedCsvFile(file) {
-    if (chosenFileName) chosenFileName.textContent = `ไฟล์ที่เลือก: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const text = e.target.result;
-      if (textarea) textarea.value = text;
-      renderImportPreview();
-      showToast(`โหลดไฟล์ ${file.name} สำเร็จ กรุณาตรวจสอบตัวอย่างข้อมูล`);
-    };
-    reader.onerror = () => {
-      showToast('ไม่สามารถอ่านไฟล์ได้', 'error');
-    };
-    reader.readAsText(file);
+  // Sheet switch
+  if (sheetSelect) {
+    sheetSelect.addEventListener('change', async (e) => {
+      const selectedSheet = e.target.value;
+      if (currentFileBuffer && currentFileName) {
+        await parseAndApplyExcel(currentFileBuffer, currentFileName, selectedSheet);
+      }
+    });
   }
 
-  function renderImportPreview() {
-    const text = textarea ? textarea.value : '';
-    const parsed = parseCsvOrTsv(text);
+  // Apply header row
+  if (btnApplyHeaderRow && headerRowInput) {
+    btnApplyHeaderRow.addEventListener('click', () => {
+      const rowNum = parseInt(headerRowInput.value, 10) || 1;
+      currentHeaderRowIdx = Math.max(0, rowNum - 1);
+      if (currentRawRows[currentHeaderRowIdx]) {
+        currentColumnMapping = window.ExcelImporter.mapColumns(currentRawRows[currentHeaderRowIdx].cells);
+        renderColumnMappingGrid();
+        renderImportPreview();
+      }
+    });
+  }
 
+  // Toggle mapping panel
+  if (btnToggleMapping && mappingGrid) {
+    btnToggleMapping.addEventListener('click', () => {
+      const isHidden = mappingGrid.classList.contains('hidden');
+      mappingGrid.classList.toggle('hidden', !isHidden);
+      if (mappingToggleText) {
+        mappingToggleText.innerHTML = isHidden ? 'ซ่อนการปรับแก้ <i class="fa-solid fa-chevron-up"></i>' : 'ตรวจ/ปรับแก้ <i class="fa-solid fa-chevron-down"></i>';
+      }
+    });
+  }
+
+  // Preview Pagination
+  if (btnPrevPage) {
+    btnPrevPage.addEventListener('click', () => {
+      if (currentPreviewPage > 1) {
+        currentPreviewPage--;
+        renderImportPreview();
+      }
+    });
+  }
+  if (btnNextPage) {
+    btnNextPage.addEventListener('click', () => {
+      currentPreviewPage++;
+      renderImportPreview();
+    });
+  }
+
+  // Filter Buttons in Preview Header
+  const filterBtns = document.querySelectorAll('.preview-filter-btn');
+  filterBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      filterBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentPreviewFilter = btn.dataset.filter || 'all';
+      currentPreviewPage = 1;
+      renderImportPreview();
+    });
+  });
+
+  // Filter Pills click
+  const pillOk = document.getElementById('pillImportOk');
+  const pillWarn = document.getElementById('pillImportWarning');
+  const pillErr = document.getElementById('pillImportError');
+  const pillSkip = document.getElementById('pillImportSkipped');
+
+  if (pillOk) pillOk.addEventListener('click', () => setFilterAndRender('ok'));
+  if (pillWarn) pillWarn.addEventListener('click', () => setFilterAndRender('issues'));
+  if (pillErr) pillErr.addEventListener('click', () => setFilterAndRender('error'));
+  if (pillSkip) pillSkip.addEventListener('click', () => {
+    if (currentImportResult && currentImportResult.skippedRows.length > 0) {
+      showReportModal(currentImportResult.skippedRows, []);
+    } else {
+      showToast('ไม่มีแถวที่ถูกข้ามในไฟล์นี้');
+    }
+  });
+
+  function setFilterAndRender(filter) {
+    currentPreviewFilter = filter;
+    currentPreviewPage = 1;
+    filterBtns.forEach(b => b.classList.toggle('active', b.dataset.filter === filter));
+    renderImportPreview();
+  }
+
+  // File Handling (Excel & CSV)
+  function handleSelectedFile(file) {
+    if (!file) return;
+    if (chosenFileName) chosenFileName.textContent = `ไฟล์ที่เลือก: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+
+    const lower = file.name.toLowerCase();
+    const isExcel = lower.endsWith('.xlsx') || lower.endsWith('.xls') || lower.endsWith('.xlsm');
+
+    if (isExcel) {
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        const buffer = e.target.result;
+        currentFileBuffer = buffer;
+        currentFileName = file.name;
+
+        const sig = window.ExcelImporter.validateFileSignature(buffer, file.name);
+        if (!sig.valid) {
+          showToast(sig.message, 'error');
+          return;
+        }
+
+        try {
+          showToast('กำลังอ่านข้อมูลจากไฟล์ Excel...');
+          await parseAndApplyExcel(buffer, file.name);
+        } catch (err) {
+          showToast(err.message, 'error');
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    } else {
+      // CSV / TSV text
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const text = e.target.result;
+        if (textarea) textarea.value = text;
+        currentFileName = file.name;
+        currentFileBuffer = null;
+        if (sheetSelectorBar) sheetSelectorBar.classList.add('hidden');
+        processTextInput(text);
+        showToast(`โหลดไฟล์ ${file.name} สำเร็จ กรุณาตรวจสอบตัวอย่างข้อมูล`);
+      };
+      reader.onerror = () => showToast('ไม่สามารถอ่านไฟล์ได้', 'error');
+      reader.readAsText(file);
+    }
+  }
+
+  // Parse Excel Buffer using Web Worker or Main Thread
+  async function parseAndApplyExcel(buffer, fileName, targetSheet = null) {
+    const worker = getExcelWorker();
+
+    let parseResult = null;
+    if (worker) {
+      parseResult = await new Promise((resolve, reject) => {
+        const handleMsg = (e) => {
+          worker.removeEventListener('message', handleMsg);
+          worker.removeEventListener('error', handleErr);
+          if (e.data.success) resolve(e.data);
+          else reject(new Error(e.data.message || 'เกิดข้อผิดพลาดในการแยกวิเคราะห์ Excel'));
+        };
+        const handleErr = (err) => {
+          worker.removeEventListener('message', handleMsg);
+          worker.removeEventListener('error', handleErr);
+          reject(err);
+        };
+        worker.addEventListener('message', handleMsg);
+        worker.addEventListener('error', handleErr);
+        worker.postMessage({ action: 'parse', fileData: buffer, sheetName: targetSheet, fileName });
+      });
+    } else {
+      // Main Thread Fallback
+      const XLSX = await window.ExcelImporter.loadSheetJs();
+      const wb = XLSX.read(buffer, { type: 'array', cellFormula: false, cellHTML: false, cellText: true });
+      if (wb.vbaraw) {
+        throw new Error('ไฟล์นี้มี Macro (.xlsm) ซึ่งระบบไม่อนุญาตให้นำเข้าเพื่อความปลอดภัย');
+      }
+      const sheetNames = wb.SheetNames || [];
+      const sheetsInfo = sheetNames.map(name => {
+        const ws = wb.Sheets[name];
+        let rowCount = 0;
+        if (ws && ws['!ref']) {
+          const r = XLSX.utils.decode_range(ws['!ref']);
+          rowCount = Math.max(0, r.e.r - r.s.r + 1);
+        }
+        return { name, rowCount };
+      });
+      const tName = targetSheet || (sheetsInfo.find(s => s.rowCount > 0) || sheetsInfo[0]).name;
+      const ws = wb.Sheets[tName];
+      const rawData = XLSX.utils.sheet_to_json(ws, { header: 1 });
+      const rows = rawData.map((row, rIdx) => ({
+        rowIndex: rIdx,
+        cells: (row || []).map(val => ({ val, text: String(val !== undefined && val !== null ? val : '') }))
+      }));
+      parseResult = { sheets: sheetsInfo, selectedSheet: tName, rows };
+    }
+
+    currentRawRows = parseResult.rows || [];
+    currentWorkbookSheets = parseResult.sheets || [];
+
+    // Setup Sheet Selector
+    if (sheetSelectorBar && sheetSelect) {
+      sheetSelect.innerHTML = currentWorkbookSheets.map(s => `
+        <option value="${escapeHtml(s.name)}" ${s.name === parseResult.selectedSheet ? 'selected' : ''}>
+          ${escapeHtml(s.name)} (${s.rowCount} แถว)
+        </option>
+      `).join('');
+      if (sheetRowCount) {
+        sheetRowCount.textContent = `${currentRawRows.length} แถวที่มีข้อมูล`;
+      }
+      sheetSelectorBar.classList.remove('hidden');
+    }
+
+    // Auto-detect header row
+    currentHeaderRowIdx = window.ExcelImporter.detectHeaderRow(currentRawRows);
+    if (headerRowInput) {
+      headerRowInput.value = currentHeaderRowIdx + 1;
+    }
+
+    // Auto-map columns
+    if (currentRawRows[currentHeaderRowIdx]) {
+      currentColumnMapping = window.ExcelImporter.mapColumns(currentRawRows[currentHeaderRowIdx].cells);
+      renderColumnMappingGrid();
+    }
+
+    currentPreviewPage = 1;
+    renderImportPreview();
+    showToast(`โหลดชีต "${parseResult.selectedSheet}" สำเร็จ (${currentRawRows.length} แถว)`);
+  }
+
+  // Process text or pasted CSV/TSV
+  function processTextInput(text) {
+    if (!text || !text.trim()) {
+      currentRawRows = [];
+      currentParsedGuests = [];
+      renderImportPreview();
+      return;
+    }
+
+    const clean = text.replace(/^\ufeff/, '').trim();
+    let delimiter = '\t';
+    const firstLine = clean.split(/\r?\n/)[0] || '';
+    if (firstLine.includes('\t')) delimiter = '\t';
+    else if (firstLine.includes(';')) delimiter = ';';
+    else if (firstLine.includes(',')) delimiter = ',';
+
+    // Simple line/token splitter
+    const lines = clean.split(/\r?\n/).filter(l => l.trim().length > 0);
+    currentRawRows = lines.map((line, rIdx) => {
+      const parts = line.split(delimiter).map(c => c.trim().replace(/^"(.*)"$/, '$1').trim());
+      return {
+        rowIndex: rIdx,
+        cells: parts.map(p => ({ val: p, text: p }))
+      };
+    });
+
+    if (sheetSelectorBar) sheetSelectorBar.classList.add('hidden');
+
+    currentHeaderRowIdx = window.ExcelImporter.detectHeaderRow(currentRawRows);
+    if (headerRowInput) headerRowInput.value = currentHeaderRowIdx + 1;
+
+    if (currentRawRows[currentHeaderRowIdx]) {
+      currentColumnMapping = window.ExcelImporter.mapColumns(currentRawRows[currentHeaderRowIdx].cells);
+      renderColumnMappingGrid();
+    }
+
+    currentPreviewPage = 1;
+    renderImportPreview();
+  }
+
+  // Render Column Mapping Interface
+  function renderColumnMappingGrid() {
+    if (!mappingWrapper || !mappingGrid) return;
+    const headerRow = currentRawRows[currentHeaderRowIdx];
+    if (!headerRow || !headerRow.cells || headerRow.cells.length === 0) {
+      mappingWrapper.classList.add('hidden');
+      return;
+    }
+
+    mappingWrapper.classList.remove('hidden');
+
+    const optionsList = [
+      { key: 'organization', label: 'ชื่อสื่อ / เพจ (Media Name)' },
+      { key: 'name', label: 'ชื่อผู้รับบัตร (Attendee Name)' },
+      { key: 'follower', label: 'Follower (ผู้ติดตาม)' },
+      { key: 'pic', label: 'PIC (ผู้ดูแลโควตา)' },
+      { key: 'participant', label: 'จำนวนคน (Participant)' },
+      { key: 'seat', label: 'Seat (ที่นั่ง)' },
+      { key: 'detail', label: 'Detail (รายละเอียด)' },
+      { key: 'phone', label: 'เบอร์โทร (Tel / Phone)' },
+      { key: 'ignore', label: '-- ไม่นำเข้า (Ignore) --' }
+    ];
+
+    mappingGrid.innerHTML = headerRow.cells.map((cell, idx) => {
+      const colTitle = normalizeText(cell.text || cell.val) || `คอลัมน์ ${idx + 1}`;
+      const mappedKey = currentColumnMapping[idx] || 'ignore';
+
+      return `
+        <div class="mapping-item">
+          <span class="mapping-label" title="${escapeHtml(colTitle)}">${escapeHtml(colTitle)}</span>
+          <select class="mapping-select" data-col-idx="${idx}">
+            ${optionsList.map(opt => `
+              <option value="${opt.key}" ${opt.key === mappedKey ? 'selected' : ''}>
+                ${escapeHtml(opt.label)}
+              </option>
+            `).join('')}
+          </select>
+        </div>
+      `;
+    }).join('');
+
+    // Attach change listener to dropdowns
+    mappingGrid.querySelectorAll('.mapping-select').forEach(sel => {
+      sel.addEventListener('change', (e) => {
+        const colIdx = parseInt(e.target.dataset.colIdx, 10);
+        currentColumnMapping[colIdx] = e.target.value;
+        renderImportPreview();
+      });
+    });
+  }
+
+  // Unified Preview Renderer
+  function renderImportPreview() {
     const previewWrapper = document.getElementById('importPreviewWrapper');
     const previewCount = document.getElementById('previewCount');
     const previewSeatCount = document.getElementById('previewSeatCount');
     const tbody = document.getElementById('previewTableBody');
     const summaryBar = document.getElementById('importSummaryBar');
-    const chkOnly = document.getElementById('chkImportConfirmedOnly');
 
     if (!previewWrapper || !tbody) return;
 
-    if (parsed.length === 0) {
+    if (!currentRawRows || currentRawRows.length === 0) {
       previewWrapper.classList.add('hidden');
       if (summaryBar) summaryBar.classList.add('hidden');
       if (btnConfirm) btnConfirm.disabled = true;
@@ -1426,105 +1782,179 @@ function setupCsvImportModal() {
       return;
     }
 
-    // Update File Stats Pills
-    if (summaryBar && parsed.fileStats) {
-      summaryBar.classList.remove('hidden');
-      const elConf = document.getElementById('sumConfirmedCount');
-      if (elConf) elConf.textContent = parsed.fileStats.confirmedCount;
-      const elSeats = document.getElementById('sumConfirmedSeats');
-      if (elSeats) elSeats.textContent = parsed.fileStats.confirmedSeats;
-      const elEmpty = document.getElementById('sumEmptyCount');
-      if (elEmpty) elEmpty.textContent = parsed.fileStats.emptyCount;
-      const elDec = document.getElementById('sumDeclinedCount');
-      if (elDec) elDec.textContent = parsed.fileStats.declinedCount;
+    const replaceExisting = document.querySelector('input[name="importMode"]:checked')?.value === 'replace';
+
+    // Run unified processing engine
+    const processResult = window.ExcelImporter.processImportRows(
+      currentRawRows,
+      currentColumnMapping,
+      currentHeaderRowIdx,
+      {
+        screeningId: state.activeScreeningId,
+        existingGuests: state.guests,
+        replaceExisting
+      }
+    );
+
+    currentImportResult = processResult;
+    lastSkippedRows = processResult.skippedRows;
+
+    let importableList = processResult.importableGuests;
+
+    // Filter confirmed only if checkbox is active
+    if (chkConfirmedOnly && chkConfirmedOnly.checked) {
+      importableList = importableList.filter(g => g.participant > 0);
     }
 
-    const filterConfirmedOnly = chkOnly ? chkOnly.checked : true;
-    const finalGuests = filterConfirmedOnly 
-      ? parsed.filter(p => p.isConfirmed)
-      : parsed;
+    currentParsedGuests = importableList;
 
-    currentParsedGuests = finalGuests;
+    // Update Summary Bar Pills
+    if (summaryBar) {
+      summaryBar.classList.remove('hidden');
+      const sum = processResult.summary;
+      const elOk = document.getElementById('sumOkCount');
+      if (elOk) elOk.textContent = sum.okCount;
+      const elWarn = document.getElementById('sumWarningCount');
+      if (elWarn) elWarn.textContent = sum.warningCount;
+      const elErr = document.getElementById('sumErrorCount');
+      if (elErr) elErr.textContent = sum.errorCount;
+      const elSkip = document.getElementById('sumSkippedCount');
+      if (elSkip) elSkip.textContent = sum.skippedCount;
+      const elPart = document.getElementById('sumTotalParticipants');
+      if (elPart) elPart.textContent = sum.totalParticipants;
+      const elSeats = document.getElementById('sumTotalSeats');
+      if (elSeats) elSeats.textContent = sum.totalSeats;
+    }
 
     previewWrapper.classList.remove('hidden');
-    if (btnConfirm) btnConfirm.disabled = finalGuests.length === 0;
 
-    let totalSeats = 0;
-    finalGuests.forEach(p => {
-      totalSeats += (p.participant || 0);
-    });
-
-    if (previewCount) previewCount.textContent = finalGuests.length;
-
-    // Check seat collisions with existing screening guests (unless replace mode)
-    const replaceMode = document.querySelector('input[name="importMode"]:checked')?.value === 'replace';
-    const occupiedSeatsMap = new Map();
-    if (!replaceMode && Array.isArray(state.guests)) {
-      state.guests.forEach(g => {
-        if (!g.seat) return;
-        const sList = g.seat.split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
-        sList.forEach(s => occupiedSeatsMap.set(s, g));
-      });
+    // Filter items based on currentPreviewFilter
+    let displayedGuests = importableList;
+    if (currentPreviewFilter === 'issues') {
+      displayedGuests = importableList.filter(g => g.status === 'warning' || g.status === 'error');
+    } else if (currentPreviewFilter === 'error') {
+      displayedGuests = importableList.filter(g => g.status === 'error');
+    } else if (currentPreviewFilter === 'ok') {
+      displayedGuests = importableList.filter(g => g.status === 'ok');
     }
 
-    const batchSeenSeats = new Map();
-    let collisionCount = 0;
+    // Pagination
+    const totalPages = Math.max(1, Math.ceil(displayedGuests.length / PREVIEW_PAGE_SIZE));
+    if (currentPreviewPage > totalPages) currentPreviewPage = totalPages;
 
-    const rowsHtml = finalGuests.slice(0, 50).map((item, idx) => {
-      let seatDisplayHtml = '-';
-      let rowHasCollision = false;
+    if (pageIndicator) {
+      pageIndicator.textContent = `${currentPreviewPage} / ${totalPages} (${displayedGuests.length} รายการ)`;
+    }
+    if (btnPrevPage) btnPrevPage.disabled = currentPreviewPage <= 1;
+    if (btnNextPage) btnNextPage.disabled = currentPreviewPage >= totalPages;
 
-      if (item.seat) {
-        const itemSeats = item.seat.split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
-        const seatBadges = itemSeats.map(st => {
-          if (!replaceMode && occupiedSeatsMap.has(st)) {
-            rowHasCollision = true;
-            collisionCount++;
-            const occ = occupiedSeatsMap.get(st);
-            return `<span class="badge" style="background: rgba(239, 68, 68, 0.25); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.5); padding: 1px 4px; border-radius: 3px;" title="ที่นั่ง ${st} ชนกับคุณ ${escapeHtml(occ.name || '')}">${st} ⚠️ ชน</span>`;
-          }
-          if (batchSeenSeats.has(st)) {
-            rowHasCollision = true;
-            collisionCount++;
-            return `<span class="badge" style="background: rgba(239, 68, 68, 0.25); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.5); padding: 1px 4px; border-radius: 3px;" title="ที่นั่ง ${st} ซ้ำในไฟล์">${st} ⚠️ ซ้ำ</span>`;
-          }
-          batchSeenSeats.set(st, idx + 1);
-          return `<span style="font-family: monospace; color: var(--color-gold); font-weight: 600;">${st}</span>`;
-        });
-        seatDisplayHtml = seatBadges.join(', ');
+    const pageStart = (currentPreviewPage - 1) * PREVIEW_PAGE_SIZE;
+    const pageItems = displayedGuests.slice(pageStart, pageStart + PREVIEW_PAGE_SIZE);
+
+    if (previewCount) previewCount.textContent = importableList.length;
+    if (previewSeatCount) {
+      previewSeatCount.innerHTML = `ที่นั่งรวม: ${processResult.summary.totalSeats} ที่${processResult.summary.errorCount > 0 ? ` <span style="color: #f87171; font-weight: 600;"><i class="fa-solid fa-triangle-exclamation"></i> ติด Error ${processResult.summary.errorCount} แถว</span>` : ''}`;
+    }
+
+    // Update Confirm Button State
+    if (btnConfirm) {
+      const hasErrors = processResult.summary.errorCount > 0;
+      btnConfirm.disabled = hasErrors || importableList.length === 0;
+      if (hasErrors) {
+        btnConfirm.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> กรุณาแก้ข้อผิดพลาดก่อนยืนยัน (${processResult.summary.errorCount} จุด)`;
+        btnConfirm.style.background = 'rgba(239, 68, 68, 0.4)';
+      } else {
+        btnConfirm.innerHTML = `<i class="fa-solid fa-check"></i> ยืนยันการนำเข้าข้อมูล (${importableList.length} รายการ)`;
+        btnConfirm.style.background = '';
+      }
+    }
+
+    // Render Preview Table Rows (With Editable Cells and Status Badges)
+    tbody.innerHTML = pageItems.map((item, localIdx) => {
+      const globalIdx = pageStart + localIdx;
+      let statusBadge = '<span class="badge-status-ok"><i class="fa-solid fa-circle-check"></i> สมบูรณ์</span>';
+
+      if (item.status === 'error') {
+        const errorMsg = (item.errors || []).join(' | ');
+        statusBadge = `<span class="badge-status-error" title="${escapeHtml(errorMsg)}"><i class="fa-solid fa-circle-xmark"></i> ${escapeHtml(errorMsg.substring(0, 30))}...</span>`;
+      } else if (item.status === 'warning') {
+        const warnMsg = (item.warnings || []).join(' | ');
+        statusBadge = `<span class="badge-status-warning" title="${escapeHtml(warnMsg)}"><i class="fa-solid fa-triangle-exclamation"></i> ${escapeHtml(warnMsg.substring(0, 30))}...</span>`;
+      }
+
+      // Format Seats display
+      let seatsDisplay = item.seat || '-';
+      if (item.seat && item.errors && item.errors.some(e => e.includes('ชน') || e.includes('ซ้ำ'))) {
+        seatsDisplay = `<span style="color: #f87171; font-weight: 600;">${escapeHtml(item.seat)} ⚠️</span>`;
       }
 
       return `
-      <tr style="${rowHasCollision ? 'background: rgba(239, 68, 68, 0.08);' : ''}">
-        <td><strong>${escapeHtml(String(item.no || (idx + 1)))}</strong></td>
-        <td><strong style="color: #fff;">${escapeHtml(item.name || '')}</strong></td>
-        <td><span style="font-size: 12px; color: var(--text-muted);">${escapeHtml(item.detail || item.organization || '-')}</span></td>
-        <td style="font-family: monospace; font-size: 12px;">${item.follower != null ? item.follower.toLocaleString() : '-'}</td>
-        <td>${item.pic ? `<span class="pic-badge">${escapeHtml(item.pic)}</span>` : '<span style="color: var(--text-dim);">-</span>'}</td>
-        <td style="text-align: center;"><strong>${item.participant}</strong></td>
-        <td>${seatDisplayHtml}</td>
-        <td>${escapeHtml(item.phone || '-')}</td>
-        <td>
-          ${rowHasCollision ? '<span class="stat-pill declined" style="padding: 2px 6px; font-size: 10.5px; margin-right: 4px;"><i class="fa-solid fa-triangle-exclamation"></i> ที่นั่งชน</span>' : ''}
-          ${item.isDeclined 
-            ? '<span class="stat-pill declined" style="padding: 2px 7px; font-size: 11px;"><i class="fa-solid fa-circle-xmark"></i> สละสิทธิ์</span>' 
-            : (item.isEmpty 
-              ? '<span class="stat-pill empty" style="padding: 2px 7px; font-size: 11px;"><i class="fa-solid fa-clock"></i> รอข้อมูล</span>' 
-              : `<span class="stat-pill confirmed" style="padding: 2px 7px; font-size: 11px;"><i class="fa-solid fa-circle-check"></i> ยืนยัน (${item.participant} ที่)</span>`)}
-        </td>
-      </tr>
-    `;
+        <tr data-row-idx="${globalIdx}" style="${item.status === 'error' ? 'background: rgba(239, 68, 68, 0.08);' : (item.status === 'warning' ? 'background: rgba(245, 158, 11, 0.04);' : '')}">
+          <td style="text-align: center; color: var(--color-text-dim); font-size: 0.8rem;">${item.row}</td>
+          <td>
+            <div class="preview-cell-editable" contenteditable="true" data-field="name" title="คลิกเพื่อแก้ไขชื่อผู้รับบัตร">
+              ${escapeHtml(item.name || '')}
+            </div>
+          </td>
+          <td>
+            <div class="preview-cell-editable" contenteditable="true" data-field="organization" title="คลิกเพื่อแก้ไขชื่อสื่อ/เพจ">
+              ${escapeHtml(item.detail || item.organization || '-')}
+            </div>
+          </td>
+          <td style="text-align: right; font-family: monospace; font-size: 0.82rem;">
+            ${item.follower != null ? item.follower.toLocaleString() : '-'}
+          </td>
+          <td style="text-align: center;">
+            ${item.pic ? `<span class="pic-badge">${escapeHtml(item.pic)}</span>` : '-'}
+          </td>
+          <td style="text-align: center;">
+            <div class="preview-cell-editable" contenteditable="true" data-field="participant" style="font-weight: 700; color: var(--color-gold);" title="คลิกเพื่อแก้ไขจำนวน">
+              ${item.participant}
+            </div>
+          </td>
+          <td>
+            <div class="preview-cell-editable" contenteditable="true" data-field="seat" style="font-family: monospace; font-weight: 600; color: #60a5fa;" title="คลิกเพื่อแก้ไขที่นั่ง">
+              ${escapeHtml(item.seat || '')}
+            </div>
+          </td>
+          <td>
+            <div class="preview-cell-editable" contenteditable="true" data-field="phone" style="font-size: 0.82rem;" title="คลิกเพื่อแก้ไขเบอร์โทร">
+              ${escapeHtml(item.phone || '')}
+            </div>
+          </td>
+          <td>${statusBadge}</td>
+        </tr>
+      `;
     }).join('');
 
-    if (previewSeatCount) {
-      previewSeatCount.innerHTML = `ที่นั่งรวม: ${totalSeats} ที่${collisionCount > 0 ? `<span style="color: #f87171; font-weight: 600; margin-left: 8px;"><i class="fa-solid fa-triangle-exclamation"></i> พบที่นั่งชน ${collisionCount} ที่</span>` : ''}`;
-    }
+    // Attach inline editing listeners to table cells
+    tbody.querySelectorAll('.preview-cell-editable').forEach(cell => {
+      cell.addEventListener('blur', (e) => {
+        const tr = e.target.closest('tr');
+        if (!tr) return;
+        const gIdx = parseInt(tr.dataset.rowIdx, 10);
+        const field = e.target.dataset.field;
+        const newText = e.target.textContent.trim();
 
-    const moreText = finalGuests.length > 50 ? `<tr><td colspan="9" style="text-align: center; color: var(--text-muted); padding: 8px;">...และอีก ${finalGuests.length - 50} รายการ...</td></tr>` : '';
-
-    tbody.innerHTML = rowsHtml + moreText;
+        if (displayedGuests[gIdx]) {
+          const targetGuest = displayedGuests[gIdx];
+          if (field === 'participant') {
+            const num = parseInt(newText, 10);
+            targetGuest.participant = isNaN(num) || num <= 0 ? 1 : num;
+          } else if (field === 'seat') {
+            targetGuest.seat = newText;
+            targetGuest.seats = window.ExcelImporter.expandSeats(newText).map(c => ({ code: c, checkedIn: false }));
+          } else {
+            targetGuest[field] = newText;
+          }
+          // Re-render to update counters & validations
+          renderImportPreview();
+        }
+      });
+    });
   }
 
+  // Confirm Import Handler
   if (btnConfirm) {
     btnConfirm.addEventListener('click', async () => {
       if (!currentParsedGuests || currentParsedGuests.length === 0) {
@@ -1546,15 +1976,21 @@ function setupCsvImportModal() {
         const res = await API.importGuests({
           screeningId: state.activeScreeningId,
           guests: currentParsedGuests,
-          replaceExisting
+          replaceExisting,
+          skipped: lastSkippedRows,
+          warnings: currentImportResult ? currentImportResult.allWarnings : []
         });
 
         if (res.success) {
-          showToast(`นำเข้าสำเร็จ ${currentParsedGuests.length} รายการ 🎬`);
           closeModal();
+          showToast(`นำเข้าสำเร็จ ${currentParsedGuests.length} รายการ 🎬`);
+
+          // Open Post-Import Report Modal
+          showReportModal(lastSkippedRows, res.data?.warnings || []);
+
           if (textarea) textarea.value = '';
           currentParsedGuests = [];
-          renderImportPreview();
+          currentRawRows = [];
           await refreshData();
         } else {
           showToast(res.message || 'นำเข้าข้อมูลไม่สำเร็จ', 'error');
@@ -1564,6 +2000,60 @@ function setupCsvImportModal() {
       } finally {
         btnConfirm.disabled = false;
         btnConfirm.innerHTML = '<i class="fa-solid fa-check"></i> ยืนยันการนำเข้าข้อมูล';
+      }
+    });
+  }
+
+  // Post-Import Report Modal Functions
+  function showReportModal(skippedItems, warnings) {
+    if (!modalReport) return;
+    const summaryBox = document.getElementById('importReportSummaryContent');
+    const skippedBody = document.getElementById('importReportSkippedTableBody');
+    const skippedWrapper = document.getElementById('importReportSkippedWrapper');
+
+    if (summaryBox) {
+      summaryBox.innerHTML = `
+        <div style="background: rgba(34, 197, 94, 0.12); border: 1px solid rgba(34, 197, 94, 0.35); border-radius: 8px; padding: 14px; margin-bottom: 12px;">
+          <h4 style="color: #4ade80; margin: 0 0 6px 0; font-size: 1rem;"><i class="fa-solid fa-circle-check"></i> บันทึกข้อมูลเข้าสู่ระบบเรียบร้อยแล้ว</h4>
+          <p style="margin: 0; font-size: 0.88rem; color: #e2e8f0;">นำเข้ารายชื่อแขกสำเร็จ <strong>${currentParsedGuests.length || (currentImportResult ? currentImportResult.summary.totalProcessed : 0)}</strong> รายการ</p>
+        </div>
+      `;
+    }
+
+    if (skippedItems && skippedItems.length > 0) {
+      if (skippedWrapper) skippedWrapper.classList.remove('hidden');
+      if (skippedBody) {
+        skippedBody.innerHTML = skippedItems.map(item => `
+          <tr>
+            <td style="text-align: center; color: var(--color-gold); font-size: 0.8rem;">${item.row}</td>
+            <td><strong>${escapeHtml(item.organization || item.name || '-')}</strong></td>
+            <td style="text-align: center; color: #f59e0b;">${escapeHtml(item.participant || '-')}</td>
+            <td style="color: #f87171; font-size: 0.82rem;">${escapeHtml(item.reason || '-')}</td>
+          </tr>
+        `).join('');
+      }
+    } else {
+      if (skippedWrapper) skippedWrapper.classList.add('hidden');
+    }
+
+    modalReport.classList.remove('hidden');
+  }
+
+  if (btnCloseReport) btnCloseReport.addEventListener('click', () => modalReport.classList.add('hidden'));
+  if (btnFinishReport) btnFinishReport.addEventListener('click', () => modalReport.classList.add('hidden'));
+
+  // Download Skipped Rows as Excel
+  if (btnDownloadSkipped) {
+    btnDownloadSkipped.addEventListener('click', async () => {
+      try {
+        if (window.ExcelImporter && lastSkippedRows.length > 0) {
+          await window.ExcelImporter.exportSkippedRowsExcel(lastSkippedRows);
+          showToast('ดาวน์โหลดรายการที่ข้ามเรียบร้อยแล้ว');
+        } else {
+          showToast('ไม่มีรายการที่ถูกข้าม');
+        }
+      } catch (err) {
+        showToast('ไม่สามารถส่งออก Excel ได้: ' + err.message, 'error');
       }
     });
   }

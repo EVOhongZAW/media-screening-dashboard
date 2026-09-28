@@ -19,3 +19,6 @@ data/*.backup.*
 
 # Chrome DevTools Profiling
 .chrome_perf_profile/
+
+# Test Files
+test_files/

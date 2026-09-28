@@ -212,6 +212,29 @@ it('Expands reverse range "C10-C8" into ascending order ["C8", "C9", "C10"]', ()
   assert.deepStrictEqual(ExcelImporter.expandSeats('C10-C8'), ['C8', 'C9', 'C10']);
 });
 
+it('findNearbyAvailableSeats suggests adjacent available seat in same row', () => {
+  const validSeats = new Set(['A8', 'A9', 'A10', 'A11', 'A12']);
+  const occupiedSeats = new Set(['A10']);
+  const suggestion = ExcelImporter.findNearbyAvailableSeats(['A10'], occupiedSeats, validSeats);
+  assert.ok(suggestion === 'A11' || suggestion === 'A9', `Expected A11 or A9, got ${suggestion}`);
+});
+
+it('findNearbyAvailableSeats suggests adjacent contiguous block for multi-seat requests', () => {
+  const validSeats = new Set(['I14', 'I15', 'I16', 'I17', 'I18', 'I19']);
+  const occupiedSeats = new Set(['I16']);
+  const suggestion = ExcelImporter.findNearbyAvailableSeats(['I16', 'I17'], occupiedSeats, validSeats);
+  assert.ok(suggestion === 'I17, I18' || suggestion === 'I14, I15', `Expected valid contiguous 2-seat block, got ${suggestion}`);
+});
+
+it('findNearbyAvailableSeats returns null when no candidate block fits or row is full', () => {
+  const validSeats = new Set(['B1', 'B2', 'B3']);
+  const occupiedSeats = new Set(['B1', 'B2', 'B3']);
+  const suggestion = ExcelImporter.findNearbyAvailableSeats(['B2'], occupiedSeats, validSeats);
+  assert.strictEqual(suggestion, null);
+  assert.strictEqual(ExcelImporter.findNearbyAvailableSeats([], occupiedSeats, validSeats), null);
+  assert.strictEqual(ExcelImporter.findNearbyAvailableSeats(['INVALID'], occupiedSeats, validSeats), null);
+});
+
 // -----------------------------------------------------------------
 // Suite 4: Header Detection & Column Mapping
 suite('Suite 4: Header Auto-Detection & Column Mapping');
@@ -225,6 +248,18 @@ it('detectHeaderRow finds the header index scanning first 10 rows', () => {
   ];
   const detected = ExcelImporter.detectHeaderRow(dummyRows);
   assert.strictEqual(detected, 2);
+});
+
+it('detectHeaderRow detects headers placed deeper at row 3 (0-indexed 3)', () => {
+  const dummyRows = [
+    { rowIndex: 0, cells: [{ text: 'โครงการฉายภาพยนตร์รอบพิเศษ 2026' }] },
+    { rowIndex: 1, cells: [{ text: 'ผู้จัด: สตูดิโอ' }] },
+    { rowIndex: 2, cells: [{ text: '' }] },
+    { rowIndex: 3, cells: [{ text: 'ชื่อสื่อ/เพจ' }, { text: 'ชื่อผู้รับบัตร' }, { text: 'เบอร์โทร' }, { text: 'ที่นั่ง' }] },
+    { rowIndex: 4, cells: [{ text: 'The Standard' }, { text: 'คุณสมศักดิ์' }, { text: '0812345678' }, { text: 'C1' }] }
+  ];
+  const detected = ExcelImporter.detectHeaderRow(dummyRows);
+  assert.strictEqual(detected, 3);
 });
 
 it('mapColumns associates column headers with canonical keys', () => {
@@ -247,6 +282,32 @@ it('mapColumns associates column headers with canonical keys', () => {
   assert.strictEqual(mapping[5], 'detail');
   assert.strictEqual(mapping[6], 'seat');
   assert.strictEqual(mapping[7], 'phone');
+});
+
+it('Two-level collision check detects collision and attaches suggestedSeats', () => {
+  const rawRows = [
+    { rowIndex: 0, cells: [{ text: 'ชื่อสื่อ/เพจ' }, { text: 'ชื่อผู้รับ' }, { text: 'จำนวน' }, { text: 'เบอร์โทร' }, { text: 'ที่นั่ง' }] },
+    { rowIndex: 1, cells: [{ text: 'สื่อ A' }, { text: 'นาย A' }, { text: '1' }, { text: '0811111111' }, { text: 'A10' }] },
+    { rowIndex: 2, cells: [{ text: 'สื่อ B' }, { text: 'นาย B' }, { text: '1' }, { text: '0822222222' }, { text: 'A10' }] }
+  ];
+  const headerRowIdx = 0;
+  const columnMapping = { 0: 'organization', 1: 'name', 2: 'participant', 3: 'phone', 4: 'seat' };
+  const validSeats = new Set(['A8', 'A9', 'A10', 'A11', 'A12']);
+
+  const result = ExcelImporter.processImportRows({
+    rawRows,
+    headerRowIdx,
+    columnMapping,
+    validSeats,
+    existingGuests: [],
+    replaceExisting: true
+  });
+
+  const row2Guest = result.importableGuests.find(g => g.row === 3);
+  assert.ok(row2Guest, 'Should find second guest');
+  assert.ok(row2Guest.errors.some(e => e.includes('ชน') || e.includes('ซ้ำ')), 'Must flag seat collision');
+  assert.ok(row2Guest.suggestedSeats, 'Must have suggestedSeats generated');
+  assert.ok(row2Guest.suggestedSeats === 'A11' || row2Guest.suggestedSeats === 'A9', `Suggested seat was: ${row2Guest.suggestedSeats}`);
 });
 
 // -----------------------------------------------------------------

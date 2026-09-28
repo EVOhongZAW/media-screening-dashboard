@@ -1916,6 +1916,11 @@ function setupCsvImportModal() {
             <div class="preview-cell-editable" contenteditable="true" data-field="seat" style="font-family: monospace; font-weight: 600; color: #60a5fa;" title="คลิกเพื่อแก้ไขที่นั่ง">
               ${escapeHtml(item.seat || '')}
             </div>
+            ${item.suggestedSeats ? `
+              <div class="suggested-seats-badge" data-suggested="${escapeHtml(item.suggestedSeats)}" title="คลิกเพื่อเปลี่ยนเป็นที่นั่งแนะนำ">
+                <i class="fa-solid fa-wand-magic-sparkles"></i> แนะนำ: ${escapeHtml(item.suggestedSeats)}
+              </div>
+            ` : ''}
           </td>
           <td>
             <div class="preview-cell-editable" contenteditable="true" data-field="phone" style="font-size: 0.82rem;" title="คลิกเพื่อแก้ไขเบอร์โทร">
@@ -1948,6 +1953,26 @@ function setupCsvImportModal() {
             targetGuest[field] = newText;
           }
           // Re-render to update counters & validations
+          renderImportPreview();
+        }
+      });
+    });
+
+    // Attach click handler for suggested seat badges
+    tbody.querySelectorAll('.suggested-seats-badge').forEach(badge => {
+      badge.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const tr = e.target.closest('tr');
+        if (!tr) return;
+        const gIdx = parseInt(tr.dataset.rowIdx, 10);
+        const suggested = badge.dataset.suggested;
+        if (suggested && displayedGuests[gIdx]) {
+          const targetGuest = displayedGuests[gIdx];
+          targetGuest.seat = suggested;
+          targetGuest.seats = window.ExcelImporter.expandSeats(suggested).map(c => ({ code: c, checkedIn: false }));
+          targetGuest.errors = (targetGuest.errors || []).filter(err => !err.includes('ชน') && !err.includes('ซ้ำ'));
+          targetGuest.suggestedSeats = null;
+          targetGuest.status = targetGuest.errors.length > 0 ? 'error' : (targetGuest.warnings.length > 0 ? 'warning' : 'ok');
           renderImportPreview();
         }
       });

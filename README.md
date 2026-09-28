@@ -282,7 +282,7 @@ http://localhost:3000/media-screening-dashboard
 
 ## 🧪 การทดสอบระบบอัตโนมัติ (Automated Test Suites)
 
-ระบบมีชุดทดสอบอัตโนมัติครอบคลุม 11 หมวดหมู่ รวม **378 รายการทดสอบ (100% Pass Rate)**:
+ระบบมีชุดทดสอบอัตโนมัติครอบคลุม 11 หมวดหมู่ รวม **383 รายการทดสอบ (100% Pass Rate)**:
 
 ```bash
 npm test
@@ -301,9 +301,9 @@ npm test
   8.  verify_sheet_import_and_schema.js:     52 / 52  PASSED (100%)
   9.  verify_seat_category_colors.js:        69 / 69  PASSED (100%)
   10. verify_tooltip_positioning.js:         40 / 40  PASSED (100%)
-  11. verify_excel_import.js:                35 / 35  PASSED (100%)
+  11. verify_excel_import.js:                40 / 40  PASSED (100%)
 ===============================================================
-  GRAND TOTAL: 378 / 378 Tests PASSED (100%)
+  GRAND TOTAL: 383 / 383 Tests PASSED (100%)
 ===============================================================
 ```
 ```

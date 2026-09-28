@@ -408,6 +408,46 @@
   }
 
   /**
+   * Suggest nearby available seats in the same row/zone
+   */
+  function findNearbyAvailableSeats(desiredSeats, occupiedSet, validSeatsSet) {
+    if (!desiredSeats || desiredSeats.length === 0 || !validSeatsSet) return null;
+    const countNeeded = desiredSeats.length;
+
+    const first = desiredSeats[0];
+    const m = first.match(/^([A-Z]{1,2})\s*(\d+)$/i);
+    if (!m) return null;
+    const row = m[1].toUpperCase();
+    const baseNum = parseInt(m[2], 10);
+
+    // Search outward in the same row first
+    for (let offset = 1; offset <= 26; offset++) {
+      for (const dir of [1, -1]) {
+        const startNum = baseNum + (dir * offset);
+        if (startNum < 1) continue;
+
+        const candidateBlock = [];
+        let blockAvailable = true;
+
+        for (let i = 0; i < countNeeded; i++) {
+          const seatCode = `${row}${startNum + i}`;
+          if (!validSeatsSet.has(seatCode) || occupiedSet.has(seatCode)) {
+            blockAvailable = false;
+            break;
+          }
+          candidateBlock.push(seatCode);
+        }
+
+        if (blockAvailable && candidateBlock.length === countNeeded) {
+          return candidateBlock.join(', ');
+        }
+      }
+    }
+
+    return null;
+  }
+
+  /**
    * Generate Standard Downloadable Excel Template (.xlsx)
    */
   async function generateTemplateExcel(customXlsx = null) {
@@ -742,6 +782,14 @@
         }
       });
 
+      // Suggest nearby available seats if seat collision detected
+      let suggestedSeats = null;
+      const hasCollision = rowErrors.some(e => e.includes('ชน') || e.includes('ซ้ำ'));
+      if (hasCollision && validSeats && validSeats.size > 0 && expandedSeats.length > 0) {
+        const allOccupied = new Set([...batchSeatUsage.keys(), ...existingSeatUsage.keys()]);
+        suggestedSeats = findNearbyAvailableSeats(expandedSeats, allOccupied, validSeats);
+      }
+
       const guestRecord = {
         row: fileRowNumber,
         name: nameVal,
@@ -754,6 +802,7 @@
         seat: expandedSeats.length > 0 ? expandedSeats.join(', ') : '',
         seats: expandedSeats.map(code => ({ code, checkedIn: false })),
         link: cellLink,
+        suggestedSeats,
         status: rowErrors.length > 0 ? 'error' : (rowWarnings.length > 0 ? 'warning' : 'ok'),
         errors: rowErrors,
         warnings: rowWarnings
@@ -804,6 +853,7 @@
     isNonNumericParticipant,
     extractRecipientName,
     expandSeats,
+    findNearbyAvailableSeats,
     generateTemplateExcel,
     exportSkippedRowsExcel,
     processImportRows,

@@ -147,42 +147,150 @@
 
 ---
 
-## 🏗️ Architecture & Tech Stack
+### 🏗️ Architecture & Tech Stack
 
-```text
-┌─────────────────────────────────────────────────────────────────────────┐
-│                          CLIENT (BROWSER / IPAD)                        │
-│                                                                         │
-│   ┌───────────────────────┐ ┌───────────────────────┐ ┌───────────────┐ │
-│   │   หน้า 1: ภาพรวมงาน   │ │   หน้า 2: ผังที่นั่ง   │ │ หน้า 3: แขก   │ │
-│   │   (Overview & KPIs)   │ │  (1,164-seat Engine)  │ │ (Guest List)  │ │
-│   └───────────────────────┘ └───────────────────────┘ └───────────────┘ │
-│                                                                         │
-│   Design Tokens (tokens.css) │ Category Colors (seatCategoryColors.js) │
-│   Optimistic UI Engine       │ O(1) Seat Map Mutation (_seatElementMap)│
-│   CSS Dataset Compositor     │ Zero Heavy Runtime Frameworks (60 FPS)   │
-└────────────────────────────────────┬────────────────────────────────────┘
-                                     │ HTTP REST APIs (Gzip/Deflate + ETag Caching)
-┌────────────────────────────────────▼────────────────────────────────────┐
-│                        NODE.JS / EXPRESS.JS BACKEND                     │
-│                                                                         │
-│   Routes:       /api/screenings  │  /api/guests  │  /api/seats          │
-│   Compression:  Built-in zlib HTTP Gzip/Deflate Compression Middleware  │
-│   Controllers:  screening, guest, seat, branch                          │
-│   Services:     seatService (Heuristics), statsService, dataService     │
-│   Storage:      In-memory Store + Asynchronous Atomic Queued Writes     │
-└─────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    subgraph Client ["Client (Browser / iPad)"]
+        UI["SPA Interface (Dark Cinema Glassmorphism)"]
+        Tokens["Design Tokens (tokens.css)"]
+        CatConfig["Seat Category Colors (seatCategoryColors.js)"]
+        Worker["Excel Web Worker (excelWorker.js)"]
+        SheetJS["Vendored SheetJS (xlsx v0.20.3 - Lazy Loaded)"]
+        
+        UI --> Tokens
+        UI --> CatConfig
+        UI -.->|On Import Modal| SheetJS
+        UI -->|Off-thread Parse| Worker
+    end
+
+    subgraph Backend ["Node.js / Express Backend"]
+        Router["REST API Router (/api/*)"]
+        Zlib["Zero-dependency zlib HTTP Compression"]
+        MemCache["In-Memory Cache (0ms Disk I/O)"]
+        WriteQueue["Atomic Promise Sequential Write Queue"]
+        Controllers["Controllers: Guest, Screening, Seat, Branch"]
+        Services["Services: seatService, statsService, snapshotService"]
+        
+        Router --> Zlib
+        Router --> Controllers
+        Controllers --> Services
+        Services --> MemCache
+        Services --> WriteQueue
+    end
+
+    subgraph Storage ["Persistent JSON File Store"]
+        DBGuests["data/guests.json (seats v2 schema)"]
+        DBScreenings["data/screenings.json"]
+        DBLogs["data/activity_logs.json (Audit Trail)"]
+        DBSnapshots["data/snapshots/*.json"]
+        
+        WriteQueue -->|Atomic Rename & Windows Lock Retry| DBGuests
+        WriteQueue --> DBScreenings
+        WriteQueue --> DBLogs
+        WriteQueue --> DBSnapshots
+    end
+
+    Client -->|REST API Requests (Gzip / ETag)| Router
 ```
 
 | เลเยอร์ | เทคโนโลยี | รายละเอียด |
 |---|---|---|
-| **Frontend** | Vanilla JS (ES6+), HTML5, CSS3 | Single Page Application (SPA) ความเร็วสูงพิเศษ ปราศจาก overhead ของ Framework |
-| **Design System** | CSS Custom Properties (Tokens), Flexbox, CSS Grid | Dark Cinema Glassmorphism, 4px Spacing Scale, Touch Target $\ge 44\text{px}$ |
+| **Frontend** | Vanilla JS (ES6+), HTML5, CSS3 | Single Page Application (SPA) ประสิทธิภาพสูงพิเศษ ไม่ใช้ Virtual DOM หรือ Heavy Framework (60 FPS) |
+| **Design System** | CSS Custom Properties (Tokens), Flexbox, CSS Grid | Dark Cinema Glassmorphism, 4px Spacing Scale, Touch Target $\ge 44\text{px}$ ตามมาตรฐาน WCAG AA |
+| **Excel Ingestion** | SheetJS (xlsx v0.20.3 Vendored) + Web Worker | บรรจุไลบรารีไว้ในเครื่อง ไม่พึ่ง CDN, โหลดแบบ Lazy-loading เมื่อเปิดหน้าต่างนำเข้า, ประมวลผลแบบ Off-thread |
 | **Compression & Caching**| Built-in Node.js `zlib`, HTTP Headers | Gzip/Deflate zero-dependency, Cache-Control 1 วัน และ ETag สำหรับ static assets |
-| **Backend** | Node.js, Express.js | RESTful APIs, Error Handling Middleware, Express Validator |
-| **Algorithms** | Heuristic Adjacency & Viewport Collision | แนะนำกลุ่มที่นั่งติดกัน และคำนวณการหลบขอบจอของ Tooltip |
-| **Storage** | In-Memory Cache + Atomic JSON Disk Queue | อ่านเร็ว 0ms disk I/O ปลอดภัยด้วย Sequential Promise Queue ป้องกันไฟล์พัง |
-| **Testing & Benchmark** | Node.js Native Test Suites + Chrome CDP | 10 ชุดทดสอบ 343 ข้อ (100% Pass Rate) พร้อมเครื่องมือวัด Performance |
+| **Backend** | Node.js, Express.js | RESTful APIs, Error Handling Middleware, Express Validator พร้อม Configurable Phone Validation |
+| **Algorithms** | Heuristic Adjacency & Viewport Collision | แนะนำกลุ่มที่นั่งติดกัน (`findNearbyAvailableSeats`) และคำนวณการหลบขอบจอของ Tooltip |
+| **Storage & Concurrency** | In-Memory Cache + Atomic JSON Disk Queue | อ่านเร็ว 0ms disk I/O ปลอดภัยด้วย Sequential Promise Queue + Atomic Temp-file Rename |
+| **Testing & Benchmark** | Node.js Native Test Suites + Chrome CDP | 11 ชุดทดสอบ 383 ข้อ (100% Pass Rate) ครอบคลุมความปลอดภัย, ข้อมูล, ประสิทธิภาพ |
+
+---
+
+## 🗄️ โครงสร้างฐานข้อมูล (Data Models & Schema)
+
+### 1. `data/guests.json` (Per-Seat Check-In Schema v2)
+```json
+{
+  "id": "gst-4d7e42eb",
+  "screeningId": "scr-84ce44cf",
+  "name": "คุณเอ็ม",
+  "organization": "Ani Network",
+  "detail": "• คุณเอ็ม (ผู้รับบัตร)\n• โทร 081-234-5678",
+  "follower": 1200000,
+  "pic": "Ani Network",
+  "phone": "0812345678",
+  "email": "",
+  "link": "https://facebook.com/page",
+  "guestType": "press",
+  "status": "accepted",
+  "seat": "I16, I17",
+  "seats": [
+    { "code": "I16", "checkedIn": true },
+    { "code": "I17", "checkedIn": false }
+  ],
+  "participant": 2,
+  "attended": false,
+  "attendedCount": 1,
+  "attendedSeats": ["I16"],
+  "checkInStatus": "partial",
+  "source": "import",
+  "createdAt": "2026-09-28T07:11:17.000Z"
+}
+```
+
+- **`seats` (Array)**: อาเรย์ของที่นั่งที่เก็บสถานะการเช็คอินแยกรายที่นั่ง (`code` รหัสที่นั่ง, `checkedIn` สถานะเช็คอิน)
+- **`checkInStatus` (Enum)**: สถานะการเข้าชม 3 ระดับ (`not-checked` ยังไม่มา, `partial` มาบางส่วน, `complete` มาครบ)
+- **`follower` (Integer / null)**: จำนวนผู้ติดตามสำหรับสื่อ/ครีเอเตอร์ รองรับการจัดเรียง
+- **`pic` (String / null)**: ฝ่ายหรือผู้ดูแลโควตา สำหรับจับคู่สี Seat Category
+- **`link` (String / null)**: URL เว็บไซต์หรือเพจจริงที่สกัดได้จาก Excel Hyperlink
+- **Backward-Compatible Accessors**: คงค่า `seat` (string), `attended` (boolean), `attendedCount` (number) เพื่อรองรับโค้ดและรายงานเดิม
+
+---
+
+## 🔌 ตาราง REST API Endpoints
+
+| Method | Endpoint | คำอธิบาย | พารามิเตอร์ / Body |
+|---|---|---|---|
+| `GET` | `/api/screenings` | ดึงรายการรอบฉายทั้งหมด | Query: `status`, `date` |
+| `GET` | `/api/screenings/:id` | ดึงข้อมูลรอบฉายเดี่ยวพร้อมสถิติ | Param: `id` |
+| `GET` | `/api/guests` | ดึงรายชื่อแขกทั้งหมด | Query: `screeningId`, `search`, `status` |
+| `GET` | `/api/guests/:id` | ดึงข้อมูลแขกรายบุคคล | Param: `id` |
+| `POST` | `/api/guests` | เพิ่มแขกใหม่ (ลงทะเบียนเดี่ยว) | Body: `{ screeningId, name, organization, seat, participant, phone, follower, pic }` |
+| `PUT` | `/api/guests/:id` | แก้ไขข้อมูลแขก | Body: ข้อมูลแขกที่ต้องการอัปเดต |
+| `DELETE` | `/api/guests/:id` | ลบแขกรายบุคคล | Param: `id` |
+| `DELETE` | `/api/guests?screeningId=` | ลบแขกทั้งหมดในรอบฉาย (REST Query) | Query: `screeningId` |
+| `POST` | `/api/guests/bulk-delete` | ลบแขกทั้งหมดในรอบฉาย (UI Safe Token) | Body: `{ screeningId, confirmation: "DELETE <count>" }` |
+| `POST` | `/api/guests/restore-snapshot` | กู้คืนข้อมูลแขกจาก Snapshot (Undo) | Body: `{ screeningId, snapshotId }` |
+| `POST` | `/api/guests/walk-in` | ลงทะเบียนแขก Walk-in หน้างานจากผัง | Body: `{ screeningId, name, seat, participant, attended, ... }` |
+| `POST` | `/api/guests/import` | นำเข้าข้อมูลแขกแบบกลุ่ม (Unified Pipeline) | Body: `{ screeningId, replaceExisting, guests, skipped, warnings }` |
+| `POST` | `/api/guests/:id/check-in` | เช็คอิน/เช็คเอาต์แขกทั้งกลุ่ม | Body: `{ attended: boolean, seatCodes?: string[] }` |
+| `PUT` | `/api/guests/:id/seats/:seatCode/checkin` | Toggle เช็คอินเฉพาะที่นั่งเดี่ยว | Param: `id`, `seatCode`, Body: `{ checkedIn?: boolean }` |
+| `GET` | `/api/guests/check-duplicates` | ตรวจสอบชื่อ/เบอร์โทรซ้ำในรอบฉาย | Query: `screeningId`, `phone`, `name` |
+| `POST` | `/api/seats/move` | ย้ายที่นั่งแขกไปยังที่นั่งใหม่ | Body: `{ screeningId, guestId, moves: [{ from, to }] }` |
+| `POST` | `/api/seats/release` | ปลดที่นั่งแขกคืนสู่ที่นั่งว่าง | Body: `{ screeningId, guestId, seatId }` |
+| `GET` | `/api/stats/overview` | ดึงสถิติภาพรวมรอบฉายและที่นั่ง | Query: `screeningId` |
+
+---
+
+## 🛡️ จุดแข็งและการจัดการ Technical Debt (Strengths & Mitigations)
+
+1. **File-based Concurrency & Race Conditions**:
+   - *เดิม*: เสี่ยงต่อไฟล์ JSON เสียหายหากมีการเขียนพร้อมกันจากหลายแท็บ
+   - *การแก้ไข*: ใช้ **Sequential Promise Queue per File** ใน [`services/dataService.js`](file:///c:/MOVIE%202/WEB%20moive/services/dataService.js) ร่วมกับการเขียนลง Temp File และทำ Atomic Rename พร้อม Retry Mechanism บน Windows ป้องกันการสูญหายของข้อมูล 100%
+2. **Disk I/O Bottleneck**:
+   - *เดิม*: อ่านไฟล์ `guests.json` ขนาดใหญ่ซ้ำๆ ทุกครั้งที่มี Request
+   - *การแก้ไข*: นำ **In-Memory Store (`memoryCache`)** มาเก็บข้อมูล และอัปเดตแคชทันทีที่มีการเขียน ทำให้ Response Time การอ่านข้อมูลเป็น **0ms Disk I/O**
+3. **Data Loss Prevention (Safety Snapshots & Audit Trail)**:
+   - ทุกการลบแบบกลุ่ม (Bulk Delete) หรือการนำเข้าแบบ Replace จะสร้าง Snapshot อัตโนมัติใน `data/snapshots/` และมีปุ่ม Undo กู้คืนได้ภายใน 10 วินาที พร้อมบันทึกประวัติทุกการกระทำลง `data/activity_logs.json`
+
+---
+
+## 🗺️ แผนการพัฒนาต่อ (Roadmap)
+
+- [ ] **UI Setting สำหรับ Phone Length**: หน้าต่างตั้งค่าในหน้าจอระบบ เพื่อสลับรูปแบบเบอร์โทรระหว่าง 10 หลัก (ไทย) และสากล (E.164)
+- [ ] **Export Audit Log**: ปุ่มส่งออกรายงานประวัติการปฏิบัติงานหน้างาน (Activity Logs) เป็นไฟล์ Excel สรุปยอดหลังจบงาน
+- [ ] **Database Migration (Future Scale)**: สำหรับงานที่มีสเกลระดับหลายหมื่นที่นั่งพร้อมกัน พิจารณารองรับ SQLite / PostgreSQL สำหรับคลัสเตอร์ขนาดใหญ่
 
 ---
 
@@ -192,7 +300,7 @@
 WEB moive/
 ├── controllers/
 │   ├── branchController.js         # จัดการข้อมูลสาขาโรงภาพยนตร์
-│   ├── guestController.js          # จัดการแขก, Follower, PIC, Check-in, Walk-in
+│   ├── guestController.js          # จัดการแขก, Follower, PIC, Check-in, Walk-in, Bulk Delete
 │   ├── screeningController.js      # จัดการรอบฉายภาพยนตร์
 │   └── seatController.js           # จัดการที่นั่ง, Heuristic Recs, Auto-assign
 ├── data/
@@ -203,7 +311,7 @@ WEB moive/
 │   └── screenings.json             # ข้อมูลรอบฉาย
 ├── middleware/
 │   ├── errorHandler.js             # กลไกจัดการข้อผิดพลาดและส่ง HTTP Status
-│   └── validator.js                # ตรวจสอบ Input Request และเบอร์โทร 10 หลัก
+│   └── validator.js                # ตรวจสอบ Input Request และเบอร์โทร 10 หลัก (Configurable)
 ├── public/
 │   ├── css/
 │   │   ├── tokens.css              # 🎨 Centralized Design System Tokens
@@ -227,6 +335,12 @@ WEB moive/
 │   ├── guestRoutes.js              # API Routes: /api/guests
 │   ├── screeningRoutes.js          # API Routes: /api/screenings
 │   └── seatRoutes.js               # API Routes: /api/seats
+├── services/
+│   ├── auditService.js             # บริการบันทึกประวัติการกระทำ (Audit Trail)
+│   ├── dataService.js              # In-Memory Cache + Sequential Promise Write Queue
+│   ├── seatService.js              # อัลกอริทึมที่นั่ง, ตรวจสอบความจุ, Topology
+│   ├── snapshotService.js          # ระบบ Snapshot และ Undo สำรองข้อมูลก่อนลบ
+│   └── statsService.js             # ระบบคำนวณสถิติและ Per-seat Attendance Tally
 ├── scripts/                        # 🧪 ชุดทดสอบอัตโนมัติ (Automated Verification)
 │   ├── measure_baseline.js         # เครื่องมือวัด DevTools Performance & Payload Benchmark
 │   ├── migrate_seats_schema.js     # สคริปต์ไมเกรต seats schema พร้อม Backup
@@ -240,7 +354,7 @@ WEB moive/
 │   ├── verify_sheet_import_and_schema.js     # Suite 8: Google Sheet 6-col (52 tests)
 │   ├── verify_seat_category_colors.js        # Suite 9: Category Colors v2 (69 tests)
 │   ├── verify_tooltip_positioning.js         # Suite 10: Smart Tooltip Flip (40 tests)
-│   └── verify_excel_import.js                # Suite 11: Enterprise Excel Pipeline (35 tests)
+│   └── verify_excel_import.js                # Suite 11: Enterprise Excel Pipeline (40 tests)
 ├── nodemon.json
 ├── package.json
 └── server.js                       # จุดเริ่มต้นระบบ Express Server

@@ -16,5 +16,6 @@ router.post('/:id/check-in', guestController.checkIn);
 router.put('/:id/seats/:seatCode/checkin', guestController.checkInSeat);
 router.put('/:id', guestController.update);
 router.delete('/:id', guestController.remove);
+router.delete('/', guestController.removeByQuery);
 
 module.exports = router;

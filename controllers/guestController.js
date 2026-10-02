@@ -245,13 +245,14 @@ exports.update = async (req, res, next) => {
         const currentGuest = guests[index];
         const screeningId = currentGuest.screeningId;
 
-        // Validate phone number if provided (must be 10 digits Thai mobile standard)
+        // Validate phone number if provided (must match configured phone length, default 10 digits Thai mobile standard)
         if (req.body.phone !== undefined && req.body.phone !== null && String(req.body.phone).trim() !== '') {
             const cleanPhone = String(req.body.phone).trim().replace(/\D/g, '');
-            if (cleanPhone.length !== 10) {
+            const targetPhoneLength = parseInt(process.env.PHONE_LENGTH, 10) || 10;
+            if (cleanPhone.length !== targetPhoneLength) {
                 return res.status(400).json({
                     success: false,
-                    message: 'เบอร์โทรต้องเป็นตัวเลข 10 หลัก (เช่น 0812345678)'
+                    message: `เบอร์โทรต้องเป็นตัวเลข ${targetPhoneLength} หลัก (เช่น 0812345678)`
                 });
             }
         }
@@ -441,10 +442,11 @@ exports.walkIn = async (req, res, next) => {
 
         if (phone && String(phone).trim() !== '') {
             const cleanPhone = String(phone).trim().replace(/\D/g, '');
-            if (cleanPhone.length !== 10) {
+            const targetPhoneLength = parseInt(process.env.PHONE_LENGTH, 10) || 10;
+            if (cleanPhone.length !== targetPhoneLength) {
                 return res.status(400).json({
                     success: false,
-                    message: 'เบอร์โทรต้องเป็นตัวเลข 10 หลัก (เช่น 0812345678)'
+                    message: `เบอร์โทรต้องเป็นตัวเลข ${targetPhoneLength} หลัก (เช่น 0812345678)`
                 });
             }
         }
@@ -1126,3 +1128,50 @@ exports.importBatch = async (req, res, next) => {
         next(error);
     }
 };
+
+/**
+ * Remove all guests by screening query (DELETE /api/guests?screeningId=...)
+ */
+exports.removeByQuery = async (req, res, next) => {
+    try {
+        const { screeningId } = req.query;
+        if (!screeningId) {
+            return res.status(400).json({ success: false, message: 'กรุณาระบุ screeningId ใน query parameter' });
+        }
+
+        const allGuests = await readData('guests.json');
+        const targetGuests = allGuests.filter(g => g.screeningId === screeningId);
+
+        if (targetGuests.length === 0) {
+            return res.status(404).json({ success: false, message: 'ไม่พบรายชื่อแขกในรอบฉายนี้' });
+        }
+
+        // 1. Create safety snapshot before delete
+        const snapshot = await snapshotService.createSnapshot(screeningId, 'bulk_delete_query');
+
+        // 2. Remove guests for this screening
+        const remainingGuests = allGuests.filter(g => g.screeningId !== screeningId);
+        await writeData('guests.json', remainingGuests);
+
+        // 3. Audit log
+        await auditService.logActivity({
+            action: 'BULK_DELETE',
+            screeningId,
+            details: {
+                deletedCount: targetGuests.length,
+                snapshotId: snapshot.id,
+                via: 'DELETE_QUERY_ENDPOINT'
+            }
+        });
+
+        res.json({
+            success: true,
+            message: `ลบรายชื่อแขกในรอบนี้จำนวน ${targetGuests.length} รายการเรียบร้อยแล้ว`,
+            deletedCount: targetGuests.length,
+            snapshotId: snapshot.id
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
